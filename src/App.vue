@@ -1,10 +1,16 @@
 <script setup lang="ts">
 import { zhCN, dateZhCN, darkTheme } from 'naive-ui'
-import AppFrame from './views/layout/AppFrame.vue'
+import { useUiStore } from '@/stores/ui'
+import AppFrame from '@/views/layout/AppFrame.vue'
+const uiStore = useUiStore()
 </script>
 
 <template>
-  <n-config-provider :locale="zhCN" :date-locale="dateZhCN" :theme="darkTheme">
+  <n-config-provider
+    :locale="zhCN"
+    :date-locale="dateZhCN"
+    :theme="uiStore.isDark ? darkTheme : null"
+  >
     <n-loading-bar-provider>
       <n-message-provider>
         <n-dialog-provider>

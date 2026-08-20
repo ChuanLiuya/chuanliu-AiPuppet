@@ -16,10 +16,9 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
 </script>
 
 <template>
-  <n-layout class="app-frame" :class="{ immersive: uiStore.immersive }" has-sider>
-    <!-- 沉浸模式：隐藏左侧应用导航（n-layout-sider 必须放在 n-layout 内部） -->
+  <n-layout class="app-frame" has-sider>
     <AppSidebar v-if="!uiStore.immersive" />
-    <n-layout-content class="app-content">
+    <n-layout-content>
       <RouterView />
     </n-layout-content>
   </n-layout>
@@ -31,11 +30,5 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
   overflow: hidden;
 }
 
-.app-content {
-  flex: 1;
-  height: 100%;
-  overflow: auto;
-  background: #f5f6fa;
-}
 
 </style>

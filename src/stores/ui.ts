@@ -45,5 +45,21 @@ export const useUiStore = defineStore('ui', () => {
 
 
 
-  return { immersive, toggleImmersive, exitImmersive,isSidebarCollapsed,toggleSidebarCollapsed }
+  /** =========== 主题（明暗模式） ========================== */
+
+
+  /** 是否深色模式（默认深色，读取本地持久化） */
+  const isDark = ref(localStorage.getItem('app-theme') !== 'light')
+  /** 切换明暗主题并持久化到 localStorage */
+  function toggleTheme() {
+    isDark.value = !isDark.value
+    localStorage.setItem('app-theme', isDark.value ? 'dark' : 'light')
+  }
+
+
+  return {
+    immersive, toggleImmersive, exitImmersive,
+    isSidebarCollapsed, toggleSidebarCollapsed,
+    isDark, toggleTheme,
+  }
 })
