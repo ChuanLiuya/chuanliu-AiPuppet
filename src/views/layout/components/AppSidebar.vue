@@ -22,7 +22,8 @@ const navItems = [
 const route = useRoute()
 
 function isActive(path: string) {
-  return route.path === path
+  // 精确匹配，或匹配子路径（如进入 /chat/1 时「聊天」仍高亮）
+  return route.path === path || route.path.startsWith(path)
 }
 </script>
 

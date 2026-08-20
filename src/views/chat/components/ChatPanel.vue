@@ -1,39 +1,53 @@
 <script setup lang="ts">
 // 沉浸模式：全局 UI 状态与图标
 import { useUiStore } from '@/stores/ui'
-import { ContractOutline, ExpandOutline } from '@vicons/ionicons5'
+import { ArrowBackOutline, ContractOutline, ExpandOutline } from '@vicons/ionicons5'
 
-// 占位数据：仅用于查看界面效果，后续替换为真实数据
+const uiStore = useUiStore()
+const router = useRouter()
+const route = useRoute()
+
+// 占位角色信息：根据路由 id 匹配当前聊天的角色（后续替换为真实数据）
+const roleMap: Record<number, { name: string; avatar: string }> = {
+  1: { name: '苏妲己', avatar: '🦊' },
+  2: { name: '林墨', avatar: '🥷' },
+  3: { name: 'Alice', avatar: '👩‍🚀' },
+}
+
+const currentRole = computed(
+  () => roleMap[Number(route.params.id)] ?? { name: '未知角色', avatar: '🤖' },
+)
+
+// 占位消息：仅用于查看界面效果，后续替换为真实数据
 const messages = [
   { id: 1, role: 'user', content: '你好，能介绍一下你自己吗？' },
   {
     id: 2,
     role: 'assistant',
-    name: '苏妲己',
-    avatar: '🦊',
-    content: '当然可以~ 我是苏妲己，一只修行千年的狐妖。',
+    content: '当然可以~ 我是这个世界的角色，很高兴认识你。',
     time: '12:31',
   },
   {
     id: 3,
     role: 'assistant',
-    name: '苏妲己',
-    avatar: '🦊',
     content: '既然你来了，我们就开始今天的对话吧。你想聊些什么呢？',
     time: '12:31',
   },
 ]
-
-const uiStore = useUiStore()
 </script>
 
 <template>
   <section class="chat-main">
     <!-- 顶部角色栏（沉浸模式隐藏） -->
     <header v-show="!uiStore.immersive" class="chat-header">
-      <span class="chat-avatar">🦊</span>
+      <NButton size="small" secondary title="返回会话列表" @click="router.push('/chat')">
+        <template #icon>
+          <NIcon :component="ArrowBackOutline" />
+        </template>
+      </NButton>
+      <span class="chat-avatar">{{ currentRole.avatar }}</span>
       <div class="chat-title">
-        <div class="chat-name">苏妲己</div>
+        <div class="chat-name">{{ currentRole.name }}</div>
         <div class="chat-sub">AI 角色扮演 · 在线</div>
       </div>
       <div class="chat-actions">
@@ -50,9 +64,9 @@ const uiStore = useUiStore()
     <!-- 消息流 -->
     <div class="message-list">
       <div v-for="m in messages" :key="m.id" class="message-row" :class="m.role">
-        <span v-if="m.role === 'assistant'" class="msg-avatar">{{ m.avatar }}</span>
+        <span v-if="m.role === 'assistant'" class="msg-avatar">{{ currentRole.avatar }}</span>
         <div class="message-bubble">
-          <div v-if="m.role === 'assistant'" class="msg-name">{{ m.name }}</div>
+          <div v-if="m.role === 'assistant'" class="msg-name">{{ currentRole.name }}</div>
           <div class="msg-content">{{ m.content }}</div>
         </div>
       </div>
