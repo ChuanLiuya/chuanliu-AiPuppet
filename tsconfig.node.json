@@ -1,0 +1,39 @@
+// TSConfig for modules that run in Node.js environment via either transpilation or type-stripping.
+{
+  "extends": "@tsconfig/node24/tsconfig.json",
+  "include": [
+    "vite.config.*",
+    "vitest.config.*",
+    "cypress.config.*",
+    "playwright.config.*",
+    "eslint.config.*",
+    "electron/**/*",
+    "shared/**/*"
+  ],
+  "compilerOptions": {
+    // Most tools use transpilation instead of Node.js's native type-stripping.
+    // Bundler mode provides a smoother developer experience.
+    "module": "preserve",
+    "moduleResolution": "bundler",
+
+    // Include Node.js types and avoid accidentally including other `@types/*` packages.
+    "types": ["node"],
+
+    // TypeORM 装饰器（@Entity / @Column）需要
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    // 路径别名：主进程代码用 @electron 指向 electron/ 目录（与 vite.config.ts 保持一致）
+    "paths": {
+      "@electron/*": ["./electron/*"],
+      "@shared/*": ["./shared/*"]
+    },
+
+    // Disable emitting output during `vue-tsc --build`, which is used for type-checking only.
+    "noEmit": true,
+
+    // `vue-tsc --build` produces a .tsbuildinfo file for incremental type-checking.
+    // Specified here to keep it out of the root directory.
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo"
+  }
+}
