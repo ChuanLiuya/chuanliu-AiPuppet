@@ -1,10 +1,10 @@
 {
   "name": "electron-vue3-starter",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "type": "module",
   "main": "dist-electron/main.js",
-  "description": "一个vue3+electron的起始项目",
+  "description": "一个ai角色扮演的应用",
   "author": "chuan_liu_ya",
   "scripts": {
     "dev": "vite",
