@@ -69,13 +69,16 @@ function bubbleStyle(role: string) {
 
     <!-- 输入区 -->
     <n-layout-footer bordered class="chat-input">
-      <NInput type="textarea" :rows="3" placeholder="输入消息，Enter 发送 / Shift+Enter 换行" />
+      <NInput
+        type="textarea"
+        :rows="3"
+        placeholder="输入消息，Enter 发送 / Shift+Enter 换行"
+        :resizable="false"
+      />
       <n-space justify="end" :size="8" class="input-actions">
-        <NButton size="small" secondary disabled>🎲 随机</NButton>
         <NButton type="primary">发送</NButton>
       </n-space>
     </n-layout-footer>
-
   </n-layout>
 </template>
 
@@ -157,6 +160,5 @@ function bubbleStyle(role: string) {
       margin-top: 10px;
     }
   }
-
 }
 </style>
