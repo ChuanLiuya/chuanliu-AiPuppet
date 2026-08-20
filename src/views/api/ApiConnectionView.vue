@@ -1,32 +1,26 @@
 <script setup lang="ts">
 // API 连接页：配置项的增删改查 + 搜索 + 测试连通性
-import {
-  NButton,
-  NIcon,
-  NPopconfirm,
-  NSpace,
-  NTag,
-  type DataTableColumns,
-} from 'naive-ui'
+import { NIcon, NTag, type DataTableColumns } from 'naive-ui'
 import { AddOutline, SearchOutline } from '@vicons/ionicons5'
 import type { ApiConfigDTO } from '@shared/types/api_config'
+import { renderTableActions } from '@/utils/tableActions'
 
 const message = useMessage()
 
 /** 配置项列表 */
 const configs = ref<ApiConfigDTO[]>([])
 /** 列表加载中 */
-const loading = ref(false)
+const isLoading = ref(false)
 
 /** 加载全部配置项 */
 async function loadConfigs() {
-  loading.value = true
+  isLoading.value = true
   try {
     configs.value = await window.electronAPI.apiConfig.findAll()
   } catch (err) {
     message.error(`加载配置失败：${err}`)
   } finally {
-    loading.value = false
+    isLoading.value = false
   }
 }
 
@@ -119,28 +113,6 @@ async function remove(row: ApiConfigDTO) {
   }
 }
 
-/** ================= 测试连接 ================= */
-
-/** 正在测试的配置项 id */
-const testingId = ref<number | null>(null)
-
-async function testConnection(row: ApiConfigDTO) {
-  testingId.value = row.id
-  try {
-    const res = await window.electronAPI.apiConfig.testConnection({
-      base_url: row.base_url,
-      api_key: row.api_key,
-      model: row.model,
-    })
-    if (res.ok) message.success(res.message)
-    else message.error(res.message)
-  } catch (err) {
-    message.error(`测试失败：${err}`)
-  } finally {
-    testingId.value = null
-  }
-}
-
 /** ================= 表格 ================= */
 
 /** 格式化创建时间 */
@@ -181,43 +153,16 @@ const columns: DataTableColumns<ApiConfigDTO> = [
     key: 'actions',
     width: 200,
     render: (row) =>
-      h(
-        NSpace,
-        { size: 'small' },
+      renderTableActions([
+        { label: '测试', type: 'info' },
+        { label: '编辑', onClick: () => openEdit(row) },
         {
-          default: () => [
-            h(
-              NButton,
-              {
-                size: 'small',
-                tertiary: true,
-                type: 'info',
-                loading: testingId.value === row.id,
-                onClick: () => testConnection(row),
-              },
-              { default: () => '测试' },
-            ),
-            h(
-              NButton,
-              { size: 'small', tertiary: true, onClick: () => openEdit(row) },
-              { default: () => '编辑' },
-            ),
-            h(
-              NPopconfirm,
-              { onPositiveClick: () => remove(row) },
-              {
-                trigger: () =>
-                  h(
-                    NButton,
-                    { size: 'small', tertiary: true, type: 'error' },
-                    { default: () => '删除' },
-                  ),
-                default: () => `确定删除「${row.name}」吗？`,
-              },
-            ),
-          ],
+          label: '删除',
+          type: 'error',
+          confirmText: `确定删除「${row.name}」吗？`,
+          onClick: () => remove(row),
         },
-      ),
+      ]),
   },
 ]
 </script>
@@ -257,7 +202,7 @@ const columns: DataTableColumns<ApiConfigDTO> = [
         <n-data-table
           :columns="columns"
           :data="filteredConfigs"
-          :loading="loading"
+          :loading="isLoading"
           :row-key="(row) => row.id"
           :scroll-x="1000"
           :pagination="{ pageSize: 8 }"
@@ -274,14 +219,14 @@ const columns: DataTableColumns<ApiConfigDTO> = [
     :style="{ width: '480px' }"
     :mask-closable="false"
   >
-    <n-form label-placement="top" :show-feedback="false">
+    <n-form label-placement="top" :show-feedback="false" size="large" class="edit-form">
       <n-form-item label="配置名称" required>
-        <n-input v-model:value="form.name" placeholder="例如：OpenAI 官方" />
+        <n-input v-model:value="form.name" placeholder="例如：DS官方api-v4pro" />
       </n-form-item>
       <n-form-item label="API 地址" required>
-        <n-input v-model:value="form.base_url" placeholder="https://api.openai.com/v1" />
+        <n-input v-model:value="form.base_url" placeholder="https://api.deepseek.com" />
       </n-form-item>
-      <n-form-item label="API Key">
+      <n-form-item label="API Key" class="form-get-model">
         <n-input
           v-model:value="form.api_key"
           type="password"
@@ -308,44 +253,50 @@ const columns: DataTableColumns<ApiConfigDTO> = [
   height: 100%;
   display: flex;
   flex-direction: column;
+
+  .page-header {
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+
+    .page-title {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .page-desc {
+      margin: 2px 0 0;
+      font-size: 13px;
+      color: #999;
+    }
+  }
+
+  .page-content {
+    flex: 1;
+    overflow: auto;
+    padding: 20px 24px;
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+
+      .search-input {
+        max-width: 360px;
+      }
+    }
+
+    .table-card {
+      padding: 8px;
+    }
+  }
 }
 
-.page-header {
+.edit-form {
   display: flex;
-  align-items: center;
-  padding: 0 24px;
-}
-
-.page-title {
-  margin: 0;
-  font-size: 18px;
-}
-
-.page-desc {
-  margin: 2px 0 0;
-  font-size: 13px;
-  color: #999;
-}
-
-.page-content {
-  flex: 1;
-  overflow: auto;
-  padding: 20px 24px;
-}
-
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.search-input {
-  max-width: 360px;
-}
-
-.table-card {
-  padding: 8px;
+  flex-direction: column;
+  gap: 10px;
 }
 </style>
