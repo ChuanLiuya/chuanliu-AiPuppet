@@ -8,18 +8,42 @@ import { defineStore } from 'pinia'
  * 只保留聊天消息流与输入框，用于沉浸式角色扮演对话。
  */
 export const useUiStore = defineStore('ui', () => {
+
+
+  /** ================  沉浸模式 =========================== */
+
+
   /** 是否处于沉浸模式 */
   const immersive = ref(false)
-
   /** 切换沉浸模式 */
   function toggleImmersive() {
     immersive.value = !immersive.value
   }
-
   /** 退出沉浸模式 */
   function exitImmersive() {
     immersive.value = false
   }
 
-  return { immersive, toggleImmersive, exitImmersive }
+
+
+  /** =========== ui状态 ========================== */
+
+
+  const isSidebarCollapsed = ref<boolean>(false)
+  /**
+   * 切换折叠栏状态
+   */
+  function toggleSidebarCollapsed(_e: boolean) {
+    // console.log(`切换折叠栏状态到 ${e? '折叠' : '展开'} 状态`)
+    isSidebarCollapsed.value = ! isSidebarCollapsed.value
+  }
+
+
+
+
+
+
+
+
+  return { immersive, toggleImmersive, exitImmersive,isSidebarCollapsed,toggleSidebarCollapsed }
 })
