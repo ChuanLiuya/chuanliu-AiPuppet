@@ -14,4 +14,18 @@ export const IpcChannels = {
     /** 删除一个小猫 */
     remove: 'api:cat:remove',
   },
+  apiConfig: {
+    /** 查找所有配置项 */
+    findAll: 'api:apiConfig:findAll',
+    /** 通过id查找单个配置项 */
+    findOneById: 'api:apiConfig:findOneById',
+    /** 新建配置项 */
+    create: 'api:apiConfig:create',
+    /** 修改配置项 */
+    update: 'api:apiConfig:update',
+    /** 删除配置项 */
+    remove: 'api:apiConfig:remove',
+    /** 测试连接 */
+    testConnection: 'api:apiConfig:testConnection',
+  },
 } as const

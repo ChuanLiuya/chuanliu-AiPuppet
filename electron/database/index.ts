@@ -3,10 +3,11 @@ import 'reflect-metadata'
 import { DataSource } from 'typeorm'
 import { env } from '@electron/config/env'
 import { CatEntity } from '@electron/database/entities/cat'
+import { ApiConfigEntity } from '@electron/database/entities/api_config'
 export const dataSource = new DataSource({
   type: 'better-sqlite3',
   database: env.dbPath,
-  entities: [CatEntity],
+  entities: [CatEntity, ApiConfigEntity],
   synchronize: true,
 })
 

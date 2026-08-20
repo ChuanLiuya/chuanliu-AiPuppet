@@ -27,3 +27,17 @@ export interface ApiConfigDTO {
    */
   created_at: Date
 }
+
+/** 创建 api 配置项的参数（id、created_at 由数据库自动生成） */
+export type ApiConfigCreateInput = Omit<ApiConfigDTO, 'id' | 'created_at'>
+
+/** 更新 api 配置项的可选字段 */
+export type ApiConfigUpdateInput = Partial<Omit<ApiConfigDTO, 'id' | 'created_at'>>
+
+/** 测试 api 连接的结果 */
+export interface ApiConfigTestResult {
+  /** 是否连接成功 */
+  ok: boolean
+  /** 成功说明或失败原因 */
+  message: string
+}
