@@ -17,7 +17,7 @@ const uiStore = useUiStore()
 
 // 导航菜单项：key 即路由路径，icon 用渲染函数返回
 const menuOptions: MenuOption[] = [
-  { label: renderLabel('/chat', '聊天'), key: '/chat', icon: renderIcon(ChatbubblesOutline) },
+  { label: renderLabel('/chattest', '聊天'), key: '/chattest', icon: renderIcon(ChatbubblesOutline) },
   { label: renderLabel('/api', 'API 连接'), key: '/api', icon: renderIcon(LinkOutline) },
   {
     label: renderLabel('/characters', '角色库'),

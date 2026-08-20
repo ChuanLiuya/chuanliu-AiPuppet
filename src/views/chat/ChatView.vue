@@ -1,11 +1,13 @@
 <script setup lang="ts">
 // 沉浸模式：全局 UI 状态与图标
 import { useUiStore } from '@/stores/ui'
+import { useThemeVars } from 'naive-ui'
 import { ArrowBackOutline, ContractOutline, ExpandOutline } from '@vicons/ionicons5'
 
 const uiStore = useUiStore()
 const router = useRouter()
 const route = useRoute()
+const themeVars = useThemeVars()
 
 // 占位角色信息：根据路由 id 匹配当前聊天的角色（后续替换为真实数据）
 const roleMap: Record<number, { name: string; avatar: string }> = {
@@ -34,23 +36,32 @@ const messages = [
     time: '12:31',
   },
 ]
+
+// 气泡颜色跟随主题：用户消息用主题色，助手消息用卡片底色
+function bubbleStyle(role: string) {
+  return role === 'user'
+    ? { background: themeVars.value.primaryColor, color: '#fff' }
+    : { background: themeVars.value.cardColor, color: themeVars.value.textColor1 }
+}
 </script>
 
 <template>
-  <section class="chat-main">
+  <n-layout class="chat-main">
     <!-- 顶部角色栏（沉浸模式隐藏） -->
-    <header v-show="!uiStore.immersive" class="chat-header">
-      <NButton size="small" secondary title="返回会话列表" @click="router.push('/chat')">
-        <template #icon>
-          <NIcon :component="ArrowBackOutline" />
-        </template>
-      </NButton>
-      <span class="chat-avatar">{{ currentRole.avatar }}</span>
-      <div class="chat-title">
-        <div class="chat-name">{{ currentRole.name }}</div>
-        <div class="chat-sub">AI 角色扮演 · 在线</div>
-      </div>
-      <div class="chat-actions">
+    <n-layout-header v-show="!uiStore.immersive" bordered class="chat-header">
+      <n-space align="center" :size="12" class="chat-header-left">
+        <NButton size="small" secondary title="返回会话列表" @click="router.push('/chat')">
+          <template #icon>
+            <NIcon :component="ArrowBackOutline" />
+          </template>
+        </NButton>
+        <span class="chat-avatar">{{ currentRole.avatar }}</span>
+        <div class="chat-title">
+          <div class="chat-name">{{ currentRole.name }}</div>
+          <div class="chat-sub">AI 角色扮演 · 在线</div>
+        </div>
+      </n-space>
+      <n-space align="center" :size="8">
         <NButton size="small" secondary>角色信息</NButton>
         <NButton size="small" secondary>参数</NButton>
         <NButton size="small" secondary title="沉浸模式" @click="uiStore.toggleImmersive">
@@ -58,42 +69,46 @@ const messages = [
             <NIcon :component="ContractOutline" />
           </template>
         </NButton>
-      </div>
-    </header>
+      </n-space>
+    </n-layout-header>
 
     <!-- 消息流 -->
-    <div class="message-list">
+    <n-layout-content class="message-list">
       <div v-for="m in messages" :key="m.id" class="message-row" :class="m.role">
         <span v-if="m.role === 'assistant'" class="msg-avatar">{{ currentRole.avatar }}</span>
-        <div class="message-bubble">
+        <div class="message-bubble" :style="bubbleStyle(m.role)">
           <div v-if="m.role === 'assistant'" class="msg-name">{{ currentRole.name }}</div>
           <div class="msg-content">{{ m.content }}</div>
         </div>
       </div>
-    </div>
+    </n-layout-content>
 
     <!-- 输入区 -->
-    <footer class="chat-input">
+    <n-layout-footer bordered class="chat-input">
       <NInput type="textarea" :rows="3" placeholder="输入消息，Enter 发送 / Shift+Enter 换行" />
-      <div class="input-actions">
+      <n-space justify="end" :size="8" class="input-actions">
         <NButton size="small" secondary disabled>🎲 随机</NButton>
         <NButton type="primary">发送</NButton>
-      </div>
-    </footer>
+      </n-space>
+    </n-layout-footer>
 
     <!-- 沉浸模式退出按钮 -->
     <Transition name="fade">
-      <button
+      <NButton
         v-if="uiStore.immersive"
         class="exit-immersive"
+        round
+        secondary
         title="退出沉浸模式 (Esc)"
         @click="uiStore.exitImmersive"
       >
-        <NIcon :component="ExpandOutline" :size="16" />
-        <span>退出</span>
-      </button>
+        <template #icon>
+          <NIcon :component="ExpandOutline" :size="16" />
+        </template>
+        退出
+      </NButton>
     </Transition>
-  </section>
+  </n-layout>
 </template>
 
 <style scoped>
@@ -109,10 +124,14 @@ const messages = [
 .chat-header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
   padding: 12px 20px;
-  border-bottom: 1px solid #e5e7eb;
-  background: #fff;
+}
+
+.chat-header-left {
+  display: flex;
+  flex: 1;
+  min-width: 0;
 }
 
 .chat-avatar {
@@ -131,11 +150,6 @@ const messages = [
 .chat-sub {
   font-size: 12px;
   color: #999;
-}
-
-.chat-actions {
-  display: flex;
-  gap: 8px;
 }
 
 .message-list {
@@ -168,7 +182,6 @@ const messages = [
 .message-bubble {
   padding: 10px 14px;
   border-radius: 12px;
-  background: #fff;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
@@ -192,14 +205,9 @@ const messages = [
 /* 输入区 */
 .chat-input {
   padding: 16px 20px;
-  border-top: 1px solid #e5e7eb;
-  background: #fff;
 }
 
 .input-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
   margin-top: 10px;
 }
 
@@ -208,23 +216,13 @@ const messages = [
   position: fixed;
   top: 12px;
   right: 12px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  border: none;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.35);
-  color: #fff;
-  font-size: 12px;
-  cursor: pointer;
+  z-index: 10;
   opacity: 0.4;
-  transition: opacity 0.2s, background-color 0.2s;
+  transition: opacity 0.2s;
 }
 
 .exit-immersive:hover {
   opacity: 1;
-  background: rgba(0, 0, 0, 0.55);
 }
 
 /* 退出按钮进出场动画 */

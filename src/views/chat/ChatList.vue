@@ -13,50 +13,69 @@ const router = useRouter()
 </script>
 
 <template>
-  <div class="page">
-    <header class="page-header">
-      <div>
-        <h2>会话列表</h2>
-      </div>
-    </header>
+  <n-layout class="page">
+    <n-layout-header bordered class="page-header">
+      <n-h2 class="page-title">会话列表</n-h2>
+    </n-layout-header>
 
-    <div class="session-list">
-      <div
-        v-for="s in sessions"
-        :key="s.id"
-        class="session-item"
-        @click="router.push(`/chat/${s.id}`)"
-      >
-        <div class="session-avatar">{{ s.avatar }}</div>
-        <div class="session-info">
-          <div class="session-top">
-            <span class="session-title">{{ s.title }}</span>
-            <span class="session-time">{{ s.time }}</span>
+    <n-layout-content class="session-wrap">
+      <n-space vertical :size="12">
+        <n-card
+          v-for="s in sessions"
+          :key="s.id"
+          hoverable
+          class="session-item"
+          @click="router.push('/chattest')"
+        >
+          <div class="session-body">
+            <div class="session-avatar">{{ s.avatar }}</div>
+            <div class="session-info">
+              <div class="session-top">
+                <span class="session-title">{{ s.title }}</span>
+                <span class="session-time">{{ s.time }}</span>
+              </div>
+              <div class="session-preview">{{ s.lastMessage }}</div>
+            </div>
           </div>
-          <div class="session-preview">{{ s.lastMessage }}</div>
-        </div>
-      </div>
-    </div>
-  </div>
+        </n-card>
+      </n-space>
+    </n-layout-content>
+  </n-layout>
 </template>
 
 <style scoped>
-.session-list {
+.page {
+  height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 18px;
+}
+
+.session-wrap {
+  flex: 1;
+  overflow: auto;
+  padding: 20px 24px;
 }
 
 .session-item {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 14px 16px;
-  border-radius: 12px;
-  background: #fff;
   cursor: pointer;
 }
 
+.session-body {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
 
 .session-info {
   flex: 1;
