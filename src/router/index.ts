@@ -1,9 +1,9 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
-import ChatView from '../views/ChatView.vue'
-import CharacterLibraryView from '../views/CharacterLibraryView.vue'
-import LorebookView from '../views/LorebookView.vue'
-import SettingsView from '../views/SettingsView.vue'
-import ApiConnectionView from '../views/ApiConnectionView.vue'
+import ChatView from '../views/chat/ChatView.vue'
+import CharacterLibraryView from '../views/characters/CharacterLibraryView.vue'
+import LorebookView from '../views/lorebook/LorebookView.vue'
+import SettingsView from '../views/settings/SettingsView.vue'
+import ApiConnectionView from '../views/api/ApiConnectionView.vue'
 
 const router = createRouter({
   history: createWebHashHistory(),

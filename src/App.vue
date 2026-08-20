@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Naive UI 中文语言包
 import { zhCN, dateZhCN } from 'naive-ui'
-import AppFrame from './components/layout/AppFrame.vue'
+import AppFrame from './views/layout/AppFrame.vue'
 
 console.log('electronAPI:', window.electronAPI)
 </script>
