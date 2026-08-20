@@ -1,4 +1,8 @@
 <script setup lang="ts">
+// 沉浸模式：全局 UI 状态与图标
+import { useUiStore } from '@/stores/ui'
+import { ContractOutline, ExpandOutline } from '@vicons/ionicons5'
+
 // 占位数据：仅用于查看界面效果，后续替换为真实数据
 const sessions = [
   { id: 1, name: '苏妲己', avatar: '🦊', lastMessage: '你终于来了~', time: '12:30' },
@@ -25,12 +29,15 @@ const messages = [
     time: '12:31',
   },
 ]
+
+// 沉浸模式状态
+const uiStore = useUiStore()
 </script>
 
 <template>
   <div class="chat-view">
-    <!-- 左侧会话列表 -->
-    <aside class="session-panel">
+    <!-- 左侧会话列表（沉浸模式隐藏） -->
+    <aside v-show="!uiStore.immersive" class="session-panel">
       <div class="panel-header">
         <span>会话</span>
         <NButton size="small" type="primary" round>＋ 新建</NButton>
@@ -54,8 +61,8 @@ const messages = [
 
     <!-- 右侧聊天区 -->
     <section class="chat-main">
-      <!-- 顶部角色栏 -->
-      <header class="chat-header">
+      <!-- 顶部角色栏（沉浸模式隐藏） -->
+      <header v-show="!uiStore.immersive" class="chat-header">
         <span class="chat-avatar">🦊</span>
         <div class="chat-title">
           <div class="chat-name">苏妲己</div>
@@ -64,6 +71,11 @@ const messages = [
         <div class="chat-actions">
           <NButton size="small" secondary>角色信息</NButton>
           <NButton size="small" secondary>参数</NButton>
+          <NButton size="small" secondary title="沉浸模式" @click="uiStore.toggleImmersive">
+            <template #icon>
+              <NIcon :component="ContractOutline" />
+            </template>
+          </NButton>
         </div>
       </header>
 
@@ -87,6 +99,19 @@ const messages = [
         </div>
       </footer>
     </section>
+
+    <!-- 沉浸模式退出按钮 -->
+    <Transition name="fade">
+      <button
+        v-if="uiStore.immersive"
+        class="exit-immersive"
+        title="退出沉浸模式 (Esc)"
+        @click="uiStore.exitImmersive"
+      >
+        <NIcon :component="ExpandOutline" :size="16" />
+        <span>退出</span>
+      </button>
+    </Transition>
   </div>
 </template>
 
@@ -268,5 +293,40 @@ const messages = [
   justify-content: flex-end;
   gap: 8px;
   margin-top: 10px;
+}
+
+/* 沉浸模式退出按钮 */
+.exit-immersive {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0.4;
+  transition: opacity 0.2s, background-color 0.2s;
+}
+
+.exit-immersive:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+/* 退出按钮进出场动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>
