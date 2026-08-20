@@ -8,6 +8,7 @@
   "author": "chuan_liu_ya",
   "license": "GPL-3.0-only",
   "scripts": {
+    "postinstall": "electron-rebuild -f -w better-sqlite3",
     "dev": "vite",
     "build": "vite build && electron-builder",
     "preview": "vite preview",
@@ -25,6 +26,7 @@
     "vfonts": "^0.0.3"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.2.0",
     "@tsconfig/node24": "^24.0.4",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^24.13.3",
