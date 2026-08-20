@@ -1,11 +1,21 @@
 <script setup lang="ts">
-// 侧边导航项：emoji 图标占位 + 文案 + 路由路径
+// 图标来自 Naive UI 配套的 @vicons/ionicons5，由 NIcon 组件渲染
+import {
+  BookOutline,
+  ChatbubblesOutline,
+  LinkOutline,
+  PersonOutline,
+  SettingsOutline,
+  SparklesOutline,
+} from '@vicons/ionicons5'
+
+// 侧边导航项：图标组件 + 文案 + 路由路径
 const navItems = [
-  { icon: '💬', label: '聊天', path: '/chat' },
-  { icon: '🔌', label: 'API 连接', path: '/api' },
-  { icon: '👤', label: '角色库', path: '/characters' },
-  { icon: '📖', label: '世界书', path: '/lorebook' },
-  { icon: '⚙️', label: '设置', path: '/settings' },
+  { icon: ChatbubblesOutline, label: '聊天', path: '/chat' },
+  { icon: LinkOutline, label: 'API 连接', path: '/api' },
+  { icon: PersonOutline, label: '角色库', path: '/characters' },
+  { icon: BookOutline, label: '世界书', path: '/lorebook' },
+  { icon: SettingsOutline, label: '设置', path: '/settings' },
 ]
 
 // 当前路由路径，用于高亮选中项
@@ -18,7 +28,9 @@ function isActive(path: string) {
 
 <template>
   <aside class="app-sidebar">
-    <div class="sidebar-logo">🎭</div>
+    <div class="sidebar-logo">
+      <NIcon :component="SparklesOutline" :size="28" />
+    </div>
     <nav class="sidebar-nav">
       <RouterLink
         v-for="item in navItems"
@@ -27,7 +39,9 @@ function isActive(path: string) {
         class="nav-item"
         :class="{ active: isActive(item.path) }"
       >
-        <span class="nav-icon">{{ item.icon }}</span>
+        <span class="nav-icon">
+          <NIcon :component="item.icon" :size="20" />
+        </span>
         <span class="nav-label">{{ item.label }}</span>
       </RouterLink>
     </nav>
