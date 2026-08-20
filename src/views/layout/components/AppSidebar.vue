@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // 图标来自 Naive UI 配套的 @vicons/ionicons5，由 NIcon 组件渲染
-import { h } from 'vue'
+import { h, type Component } from 'vue'
+import { RouterLink } from 'vue-router'
 import { NIcon, type MenuOption } from 'naive-ui'
 import {
   BookOutline,
@@ -14,37 +15,31 @@ import { useUiStore } from '@/stores/ui'
 
 const uiStore = useUiStore()
 
-
-// 当前路由路径，用于高亮选中项
-const route = useRoute()
-const router = useRouter()
-
 // 导航菜单项：key 即路由路径，icon 用渲染函数返回
 const menuOptions: MenuOption[] = [
-  { label: '聊天', key: '/chat', icon: () => h(NIcon, null, { default: () => h(ChatbubblesOutline) }) },
-  { label: 'API 连接', key: '/api', icon: () => h(NIcon, null, { default: () => h(LinkOutline) }) },
-  { label: '角色库', key: '/characters', icon: () => h(NIcon, null, { default: () => h(PersonOutline) }) },
-  { label: '世界书', key: '/lorebook', icon: () => h(NIcon, null, { default: () => h(BookOutline) }) },
-  { label: '设置', key: '/settings', icon: () => h(NIcon, null, { default: () => h(SettingsOutline) }) },
+  { label: renderLabel('/chat', '聊天'), key: '/chat', icon: renderIcon(ChatbubblesOutline) },
+  { label: renderLabel('/api', 'API 连接'), key: '/api', icon: renderIcon(LinkOutline) },
+  {
+    label: renderLabel('/characters', '角色库'),
+    key: '/characters',
+    icon: renderIcon(PersonOutline),
+  },
+  { label: renderLabel('/lorebook', '世界书'), key: '/lorebook', icon: renderIcon(BookOutline) },
+  { label: renderLabel('/settings', '设置'), key: '/settings', icon: renderIcon(SettingsOutline) },
 ]
 
-// 当前激活菜单 key：精确匹配，或匹配子路径（如进入 /chat/1 时「聊天」仍高亮）
-const activeKey = computed(
-  () =>
-    menuOptions.find(
-      (o) => route.path === o.key || route.path.startsWith(String(o.key)),
-    )?.key ?? null,
-)
+// 菜单文字渲染为 router-link，点击后由 Vue Router 完成路由跳转
+function renderLabel(to: string, text: string) {
+  return () => h(RouterLink, { to }, { default: () => text })
+}
 
-// 点击菜单跳转路由（key 为菜单项的字符串路由路径）
-function handleSelect(key: string | number) {
-  router.push(String(key))
+function renderIcon(icon: Component) {
+  return () => h(NIcon, null, { default: () => h(icon) })
 }
 </script>
 
 <template>
   <n-layout-sider
-    class="app-sider"
     bordered
     collapse-mode="width"
     :collapsed="uiStore.isSidebarCollapsed"
@@ -63,13 +58,10 @@ function handleSelect(key: string | number) {
       <!-- 导航菜单 -->
       <n-menu
         class="sider-menu"
-        :value="activeKey"
         :options="menuOptions"
         :collapsed="uiStore.isSidebarCollapsed"
         :collapsed-width="64"
         :collapsed-icon-size="20"
-        inverted
-        @update:value="handleSelect"
       />
 
       <!-- 底部版本号 -->
@@ -79,42 +71,34 @@ function handleSelect(key: string | number) {
 </template>
 
 <style scoped>
-.app-sider {
-  height: 100%;
-  flex-shrink: 0;
-}
-
 .sider-inner {
   display: flex;
   flex-direction: column;
   height: 100%;
-}
+  .sider-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 56px;
+    flex-shrink: 0;
+  }
 
-.sider-logo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  height: 56px;
-  flex-shrink: 0;
-  color: #fff;
-}
+  .logo-text {
+    font-size: 16px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
 
-.logo-text {
-  font-size: 16px;
-  font-weight: 700;
-  white-space: nowrap;
-}
+  .sider-menu {
+    flex: 1;
+  }
 
-.sider-menu {
-  flex: 1;
-}
-
-.sider-footer {
-  flex-shrink: 0;
-  padding-bottom: 14px;
-  text-align: center;
-  font-size: 11px;
-  color: #6f6f7e;
+  .sider-footer {
+    flex-shrink: 0;
+    padding-bottom: 14px;
+    text-align: center;
+    font-size: 11px;
+  }
 }
 </style>
