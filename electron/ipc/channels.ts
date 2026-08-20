@@ -25,7 +25,5 @@ export const IpcChannels = {
     update: 'api:apiConfig:update',
     /** 删除配置项 */
     remove: 'api:apiConfig:remove',
-    /** 测试连接 */
-    testConnection: 'api:apiConfig:testConnection',
   },
 } as const

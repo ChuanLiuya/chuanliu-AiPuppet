@@ -15,9 +15,8 @@ import { ipcRenderer } from 'electron'
 import { IpcChannels } from '@electron/ipc/channels'
 import type {
   ApiConfigDTO,
-  ApiConfigCreateInput,
-  ApiConfigUpdateInput,
-  ApiConfigTestResult,
+  CreateApiConfigParams,
+  UpdateApiConfigParams
 } from '@shared/types/api_config'
 
 export const apiConfigApi = {
@@ -46,10 +45,10 @@ export const apiConfigApi = {
    *
    * 通道：api:apiConfig:create
    *
-   * @param data 创建入参（不含 id、created_at，由数据库自动生成）
+   * @param data 创建参数（不含 id、created_at，由数据库自动生成）
    * @returns 新创建记录的 id
    */
-  create: (data: ApiConfigCreateInput): Promise<number> =>
+  create: (data: CreateApiConfigParams): Promise<number> =>
     ipcRenderer.invoke(IpcChannels.apiConfig.create, data),
 
   /**
@@ -61,7 +60,7 @@ export const apiConfigApi = {
    * @param data 需要更新的字段（只传要改的字段）
    * @returns 更新后的配置项；id 不存在时返回 null
    */
-  update: (id: number, data: ApiConfigUpdateInput): Promise<ApiConfigDTO | null> =>
+  update: (id: number, data: UpdateApiConfigParams): Promise<ApiConfigDTO | null> =>
     ipcRenderer.invoke(IpcChannels.apiConfig.update, id, data),
 
   /**
@@ -74,18 +73,6 @@ export const apiConfigApi = {
    */
   remove: (id: number): Promise<boolean> => ipcRenderer.invoke(IpcChannels.apiConfig.remove, id),
 
-  /**
-   * 测试配置项连通性
-   *
-   * 通道：api:apiConfig:testConnection
-   *
-   * @param cfg 用于测试的地址 / 密钥 / 模型（可直接传已保存的配置项）
-   * @returns 连接结果（是否成功 + 提示信息）
-   */
-  testConnection: (
-    cfg: Pick<ApiConfigDTO, 'base_url' | 'api_key' | 'model'>,
-  ): Promise<ApiConfigTestResult> =>
-    ipcRenderer.invoke(IpcChannels.apiConfig.testConnection, cfg),
 }
 
 /** apiConfigApi 的类型，供 `env.d.ts` 声明 `window.electronAPI.apiConfig` 使用 */
