@@ -35,7 +35,7 @@ export const useUiStore = defineStore('ui', () => {
    */
   function toggleSidebarCollapsed(_e: boolean) {
     // console.log(`切换折叠栏状态到 ${e? '折叠' : '展开'} 状态`)
-    isSidebarCollapsed.value = ! isSidebarCollapsed.value
+    isSidebarCollapsed.value = !isSidebarCollapsed.value
   }
 
 
