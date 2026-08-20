@@ -6,6 +6,7 @@
   "main": "dist-electron/main.js",
   "description": "一个ai角色扮演的应用",
   "author": "chuan_liu_ya",
+  "license": "GPL-3.0-only",
   "scripts": {
     "dev": "vite",
     "build": "vite build && electron-builder",
