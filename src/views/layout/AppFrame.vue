@@ -34,14 +34,9 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
 
 .app-content {
   flex: 1;
-  min-width: 0;
+  height: 100%;
   overflow: auto;
   background: #f5f6fa;
-  transition: background-color 0.3s;
 }
 
-/* 沉浸模式：内容区铺满，使用更沉浸的深色背景 */
-.app-frame.immersive .app-content {
-  background: #15151c;
-}
 </style>

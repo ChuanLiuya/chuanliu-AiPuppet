@@ -16,10 +16,8 @@ const router = useRouter()
   <div class="page">
     <header class="page-header">
       <div>
-        <h2>会话</h2>
-        <p>选择一个对话继续，或开始新的角色扮演</p>
+        <h2>会话列表</h2>
       </div>
-      <NButton type="primary">＋ 新建会话</NButton>
     </header>
 
     <div class="session-list">
@@ -56,27 +54,9 @@ const router = useRouter()
   padding: 14px 16px;
   border-radius: 12px;
   background: #fff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   cursor: pointer;
-  transition: box-shadow 0.2s, transform 0.2s;
 }
 
-.session-item:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  transform: translateY(-1px);
-}
-
-.session-avatar {
-  width: 56px;
-  height: 56px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: #f0f2f7;
-  font-size: 30px;
-}
 
 .session-info {
   flex: 1;
