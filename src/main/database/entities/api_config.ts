@@ -3,7 +3,7 @@
  */
 import { ApiConfigDTO } from '@shared/types/api_config'
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
-import { ApiKeyEntity } from './api_key'
+import { ApiKeyEntity } from '@electron/database/entities/api_key'
 
 @Entity('api_config')
 export class ApiConfigEntity implements ApiConfigDTO {

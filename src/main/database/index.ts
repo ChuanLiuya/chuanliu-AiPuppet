@@ -8,7 +8,7 @@ import { ApiKeyEntity } from '@electron/database/entities/api_key'
 export const dataSource = new DataSource({
   type: 'better-sqlite3',
   database: env.dbPath,
-  entities: [CatEntity, ApiConfigEntity, ApiKeyEntity],
+  entities: [CatEntity, ApiKeyEntity, ApiConfigEntity,],
   synchronize: true,
 })
 

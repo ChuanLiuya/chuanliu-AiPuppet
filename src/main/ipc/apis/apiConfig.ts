@@ -9,7 +9,7 @@ import type {
   UpdateApiConfigParams,
 } from '@shared/types/api_config'
 import { success, error, type ApiResponse } from '@shared/types/api-response'
-import axios from 'axios'
+// import axios from 'axios'
 /** api 配置项的相关 api（类型契约来自 shared/types） */
 export class ApiConfigController {
   /** 懒获取 api_config 表的仓库 */
@@ -91,30 +91,30 @@ export class ApiConfigController {
   /**
    * 查找模型列表
    */
-  async findModels(
-    cfg: Pick<ApiConfigDTO, 'base_url' | 'key_id'>,
-  ): Promise<ApiResponse<FindModelsResult>> {
+  // async findModels(
+  //   cfg: Pick<ApiConfigDTO, 'base_url' | 'key_id'>,
+  // ): Promise<ApiResponse<FindModelsResult>> {
 
-    // 通过 key_id 查询关联的密钥
-    const apiKey = await this.keyRepo.findOneBy({ id: cfg.key_id })
-    if (!apiKey) return error(`未找到 id 为 ${cfg.key_id} 的密钥`)
+  //   // 通过 key_id 查询关联的密钥
+  //   const apiKey = await this.keyRepo.findOneBy({ id: cfg.key_id })
+  //   if (!apiKey) return error(`未找到 id 为 ${cfg.key_id} 的密钥`)
 
-    let config = {
-      method: 'get',
-      maxBodyLength: Infinity,
-      url: cfg.base_url + 'model',
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${apiKey.key}`
-      }
-    };
+  //   let config = {
+  //     method: 'get',
+  //     maxBodyLength: Infinity,
+  //     url: cfg.base_url + 'model',
+  //     headers: {
+  //       'Accept': 'application/json',
+  //       'Authorization': `Bearer ${apiKey.key}`
+  //     }
+  //   };
 
-    axios(config)
-      .then((response) => {
-        console.log(JSON.stringify(response.data));
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  }
+  //   axios(config)
+  //     .then((response) => {
+  //       console.log(JSON.stringify(response.data));
+  //     })
+  //     .catch((error) => {
+  //       console.log(error);
+  //     });
+  // }
 }
