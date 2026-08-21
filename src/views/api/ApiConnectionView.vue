@@ -9,6 +9,7 @@ import { renderTableActions } from '@/utils/tableActions'
 
 const message = useMessage()
 const dialog = useDialog()
+const router = useRouter()
 
 // ═════════════════════════════════════════════════════
 // 状态
@@ -20,21 +21,8 @@ const configs = ref<ApiConfigDTO[]>([])
 const isLoading = ref(false)
 /** 搜索关键字 */
 const searchKeyword = ref('')
-/** 弹窗是否展示 */
-const isModalShow = ref(false)
-/** 是否正在保存 */
-const isSaving = ref(false)
-/** 正在编辑的配置项 id，null 表示新增 */
-const editingId = ref<number | null>(null)
 /** 表格选中的行 key 列表，用于批量删除 */
 const checkedRowKeys = ref<DataTableRowKey[]>([])
-/** 表单数据，新增 / 编辑配置时使用 */
-const form = reactive({
-  name: '',
-  base_url: '',
-  api_key: '',
-  model: '',
-})
 
 /** 按名称 / 地址 / 模型 关键字过滤后的列表 */
 const filteredConfigs = computed(() => {
@@ -64,53 +52,14 @@ async function loadConfigs() {
   }
 }
 
-/** 打开新增弹窗 */
+/** 跳转到新增配置页 */
 function openCreate() {
-  editingId.value = null
-  Object.assign(form, { name: '', base_url: '', api_key: '', model: '' })
-  isModalShow.value = true
+  router.push('/api/edit')
 }
 
-/** 打开编辑弹窗 */
+/** 跳转到编辑配置页 */
 function openEdit(row: ApiConfigDTO) {
-  editingId.value = row.id
-  Object.assign(form, {
-    name: row.name,
-    base_url: row.base_url,
-    api_key: row.api_key,
-    model: row.model,
-  })
-  isModalShow.value = true
-}
-
-/** 关闭弹窗（保存中时不允许关闭） */
-function closeModal() {
-  if (isSaving.value) return
-  isModalShow.value = false
-}
-
-/** 保存（新增或编辑） */
-async function save() {
-  if (!form.name.trim()) return message.warning('请填写配置名称')
-  if (!form.base_url.trim()) return message.warning('请填写 API 地址')
-
-  isSaving.value = true
-  try {
-    const data = { ...form }
-    if (editingId.value == null) {
-      await window.electronAPI.apiConfig.create(data)
-      message.success('新增配置成功')
-    } else {
-      await window.electronAPI.apiConfig.update(editingId.value, data)
-      message.success('保存成功')
-    }
-    isModalShow.value = false
-    await loadConfigs()
-  } catch (err) {
-    message.error(`保存失败：${err}`)
-  } finally {
-    isSaving.value = false
-  }
+  router.push({ path: '/api/edit', query: { id: row.id } })
 }
 
 /** 删除单个配置项 */
@@ -291,42 +240,6 @@ const columns: DataTableColumns<ApiConfigDTO> = [
       </div>
     </div>
   </div>
-
-  <!-- 新增 / 编辑弹窗 -->
-  <n-modal
-    v-model:show="isModalShow"
-    preset="card"
-    :title="editingId == null ? '新增配置' : '编辑配置'"
-    :style="{ width: '480px' }"
-    :mask-closable="false"
-  >
-    <n-form label-placement="top" :show-feedback="false" size="large" class="edit-form">
-      <n-form-item label="配置名称" required>
-        <n-input v-model:value="form.name" placeholder="例如：DS官方api-v4pro" />
-      </n-form-item>
-      <n-form-item label="API 地址" required>
-        <n-input v-model:value="form.base_url" placeholder="https://api.deepseek.com" />
-      </n-form-item>
-      <n-form-item label="API Key" class="form-get-model">
-        <n-input
-          v-model:value="form.api_key"
-          type="password"
-          show-password-on="click"
-          placeholder="sk-..."
-        />
-      </n-form-item>
-      <n-form-item label="模型">
-        <n-input v-model:value="form.model" placeholder="gpt-4o-mini" />
-      </n-form-item>
-    </n-form>
-
-    <template #footer>
-      <n-space justify="end">
-        <n-button :disabled="isSaving" @click="closeModal">取消</n-button>
-        <n-button type="primary" :loading="isSaving" @click="save">保存</n-button>
-      </n-space>
-    </template>
-  </n-modal>
 </template>
 
 <style scoped>
@@ -385,11 +298,5 @@ const columns: DataTableColumns<ApiConfigDTO> = [
       }
     }
   }
-}
-
-.edit-form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 }
 </style>

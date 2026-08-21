@@ -50,6 +50,11 @@ const router = createRouter({
       name: 'api',
       component: ApiConnectionView,
     },
+    {
+      path: '/api/edit',
+      name: 'api-edit',
+      component: ApiEditView,
+    },
   ],
 })
 
