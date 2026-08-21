@@ -4,7 +4,13 @@
  */
 import { NIcon, NTag, useDialog, type DataTableColumns, type DataTableRowKey } from 'naive-ui'
 import { h } from 'vue'
-import { AddOutline, CheckmarkCircle, KeyOutline, SearchOutline, TrashOutline } from '@vicons/ionicons5'
+import {
+  AddOutline,
+  CheckmarkCircle,
+  KeyOutline,
+  SearchOutline,
+  TrashOutline,
+} from '@vicons/ionicons5'
 import type { ApiConfigDTO } from '@shared/types/api_config'
 import { AppSettingKey } from '@shared/constants/app_setting'
 import { renderTableActions } from '@/utils/tableActions'
@@ -29,8 +35,8 @@ const configs = ref<ApiConfigDTO[]>([])
 const selectedConfigId = ref<number | null>(null)
 
 /** 当前选中的配置项对象 */
-const selectedConfig = computed(() =>
-  configs.value.find((c) => c.id === selectedConfigId.value) ?? null,
+const selectedConfig = computed(
+  () => configs.value.find((c) => c.id === selectedConfigId.value) ?? null,
 )
 
 /** 格式化后的配置项列表（时间格式化、密钥掩码展示） */
@@ -79,9 +85,7 @@ async function loadConfigs() {
     }
     configs.value = cfgRes.result
     // 加载用户选中的配置
-    const settingRes = await window.electronAPI.appSetting.get(
-      AppSettingKey.SELECTED_API_CONFIG_ID,
-    )
+    const settingRes = await window.electronAPI.appSetting.get(AppSettingKey.SELECTED_API_CONFIG_ID)
     debugLog('appSetting.get', settingRes)
     if (settingRes.success && settingRes.result) {
       selectedConfigId.value = Number(settingRes.result)
@@ -219,10 +223,9 @@ const columns: DataTableColumns<(typeof formatedCfgs.value)[number]> = [
   {
     title: '名称',
     key: 'name',
-    minWidth: 100,
     ellipsis: { tooltip: true },
-    resizable: true,
     fixed: 'left',
+    width: 180,
     render: (row) =>
       h('div', { style: 'display: flex; align-items: center; gap: 6px;' }, [
         h('span', null, row.name),
@@ -236,9 +239,15 @@ const columns: DataTableColumns<(typeof formatedCfgs.value)[number]> = [
       ]),
   },
   {
+    title: 'ID',
+    key: 'id',
+    resizable: true,
+    minWidth: 50,
+  },
+  {
     title: 'API 地址',
     key: 'base_url',
-    minWidth: 100,
+minWidth: 180,
     ellipsis: { tooltip: true },
     resizable: true,
   },
@@ -246,14 +255,14 @@ const columns: DataTableColumns<(typeof formatedCfgs.value)[number]> = [
   {
     title: 'API 密钥',
     key: 'api_key_text',
-    minWidth: 50,
+minWidth: 100,
     ellipsis: { tooltip: true },
     resizable: true,
   },
   {
     title: '创建时间',
     key: 'created_at_text',
-    minWidth: 80,
+    minWidth: 180,
     ellipsis: { tooltip: true },
     resizable: true,
   },
@@ -261,7 +270,7 @@ const columns: DataTableColumns<(typeof formatedCfgs.value)[number]> = [
     title: '操作',
     key: 'actions',
     fixed: 'right',
-    width: 260,
+    width: 280,
     render: (row) =>
       renderTableActions([
         {
@@ -297,8 +306,8 @@ const columns: DataTableColumns<(typeof formatedCfgs.value)[number]> = [
       <div v-if="selectedConfig" class="selected-banner">
         <NIcon :component="CheckmarkCircle" :size="18" />
         <span class="selected-text">
-          当前使用：<strong>{{ selectedConfig.name }}</strong>
-          （{{ selectedConfig.model }} · {{ selectedConfig.base_url }}）
+          当前使用：<strong>{{ selectedConfig.name }}</strong> （{{ selectedConfig.model }} ·
+          {{ selectedConfig.base_url }}）
         </span>
         <n-button
           size="small"
@@ -348,6 +357,7 @@ const columns: DataTableColumns<(typeof formatedCfgs.value)[number]> = [
       <!-- 配置列表 -->
       <div class="table-card">
         <n-data-table
+        striped
           @update:checked-row-keys="handleCheckedChange"
           :columns="columns"
           :data="filteredConfigs"
@@ -357,6 +367,7 @@ const columns: DataTableColumns<(typeof formatedCfgs.value)[number]> = [
           :pagination="false"
           flex-height
           class="table"
+          row-class-name=""
         />
       </div>
     </div>
