@@ -1,12 +1,8 @@
 <script setup lang="ts">
-// API 连接页：配置项的增删改查 + 搜索 + 测试连通性
-import {
-  NIcon,
-  NTag,
-  useDialog,
-  type DataTableColumns,
-  type DataTableRowKey,
-} from 'naive-ui'
+/**
+ * api连接页面。
+ */
+import { NIcon, NTag, useDialog, type DataTableColumns, type DataTableRowKey } from 'naive-ui'
 import { AddOutline, SearchOutline, TrashOutline } from '@vicons/ionicons5'
 import type { ApiConfigDTO } from '@shared/types/api_config'
 import { renderTableActions } from '@/utils/tableActions'
@@ -14,10 +10,47 @@ import { renderTableActions } from '@/utils/tableActions'
 const message = useMessage()
 const dialog = useDialog()
 
+// ═════════════════════════════════════════════════════
+// 状态
+// ═════════════════════════════════════════════════════
+
 /** 配置项列表 */
 const configs = ref<ApiConfigDTO[]>([])
-/** 列表加载中 */
+/** 列表是否处于加载中 */
 const isLoading = ref(false)
+/** 搜索关键字 */
+const searchKeyword = ref('')
+/** 弹窗是否展示 */
+const isModalShow = ref(false)
+/** 是否正在保存 */
+const isSaving = ref(false)
+/** 正在编辑的配置项 id，null 表示新增 */
+const editingId = ref<number | null>(null)
+/** 表格选中的行 key 列表，用于批量删除 */
+const checkedRowKeys = ref<DataTableRowKey[]>([])
+/** 表单数据，新增 / 编辑配置时使用 */
+const form = reactive({
+  name: '',
+  base_url: '',
+  api_key: '',
+  model: '',
+})
+
+/** 按名称 / 地址 / 模型 关键字过滤后的列表 */
+const filteredConfigs = computed(() => {
+  const kw = searchKeyword.value.trim().toLowerCase()
+  if (!kw) return configs.value
+  return configs.value.filter((c) =>
+    [c.name, c.base_url, c.model].some((v) => v?.toLowerCase().includes(kw)),
+  )
+})
+
+/** 当前选中的配置项数量（用于按钮文案与禁用态） */
+const checkedCount = computed(() => checkedRowKeys.value.length)
+
+// ═════════════════════════════════════════════════════
+// 函数
+// ═════════════════════════════════════════════════════
 
 /** 加载全部配置项 */
 async function loadConfigs() {
@@ -31,39 +64,11 @@ async function loadConfigs() {
   }
 }
 
-onMounted(loadConfigs)
-
-/** ================= 搜索 ================= */
-
-const searchKeyword = ref('')
-
-/** 按名称 / 地址 / 模型 关键字过滤后的列表 */
-const filteredConfigs = computed(() => {
-  const kw = searchKeyword.value.trim().toLowerCase()
-  if (!kw) return configs.value
-  return configs.value.filter((c) =>
-    [c.name, c.base_url, c.model].some((v) => v?.toLowerCase().includes(kw)),
-  )
-})
-
-/** ================= 新增 / 编辑 ================= */
-
-const showModal = ref(false)
-const saving = ref(false)
-/** 正在编辑的配置项 id；null 表示新增 */
-const editingId = ref<number | null>(null)
-const form = reactive({
-  name: '',
-  base_url: '',
-  api_key: '',
-  model: '',
-})
-
 /** 打开新增弹窗 */
 function openCreate() {
   editingId.value = null
   Object.assign(form, { name: '', base_url: '', api_key: '', model: '' })
-  showModal.value = true
+  isModalShow.value = true
 }
 
 /** 打开编辑弹窗 */
@@ -75,13 +80,13 @@ function openEdit(row: ApiConfigDTO) {
     api_key: row.api_key,
     model: row.model,
   })
-  showModal.value = true
+  isModalShow.value = true
 }
 
-/** 关闭弹窗 */
+/** 关闭弹窗（保存中时不允许关闭） */
 function closeModal() {
-  if (saving.value) return
-  showModal.value = false
+  if (isSaving.value) return
+  isModalShow.value = false
 }
 
 /** 保存（新增或编辑） */
@@ -89,7 +94,7 @@ async function save() {
   if (!form.name.trim()) return message.warning('请填写配置名称')
   if (!form.base_url.trim()) return message.warning('请填写 API 地址')
 
-  saving.value = true
+  isSaving.value = true
   try {
     const data = { ...form }
     if (editingId.value == null) {
@@ -99,22 +104,16 @@ async function save() {
       await window.electronAPI.apiConfig.update(editingId.value, data)
       message.success('保存成功')
     }
-    showModal.value = false
+    isModalShow.value = false
     await loadConfigs()
   } catch (err) {
     message.error(`保存失败：${err}`)
   } finally {
-    saving.value = false
+    isSaving.value = false
   }
 }
 
-/** ================= 删除 ================= */
-
-const checkedRowKeysRef = ref<DataTableRowKey[]>([])
-
-/** 当前选中的配置项数量（用于按钮文案与禁用态） */
-const checkedCount = computed(() => checkedRowKeysRef.value.length)
-
+/** 删除单个配置项 */
 async function remove(row: ApiConfigDTO) {
   try {
     await window.electronAPI.apiConfig.remove(row.id)
@@ -127,13 +126,11 @@ async function remove(row: ApiConfigDTO) {
 
 /** 批量删除选中的配置项 */
 async function batchRemove() {
-  const ids = [...checkedRowKeysRef.value]
+  const ids = [...checkedRowKeys.value]
   if (!ids.length) return
 
   // 取出选中行对应的名称，用于弹窗展示
-  const names = configs.value
-    .filter((c) => ids.includes(c.id))
-    .map((c) => c.name)
+  const names = configs.value.filter((c) => ids.includes(c.id)).map((c) => c.name)
 
   dialog.warning({
     title: '批量删除',
@@ -149,7 +146,7 @@ async function batchRemove() {
           failed++
         }
       }
-      checkedRowKeysRef.value = []
+      checkedRowKeys.value = []
       await loadConfigs()
       if (failed) {
         message.warning(`删除完成，其中 ${failed} 项失败`)
@@ -160,17 +157,12 @@ async function batchRemove() {
   })
 }
 
-/**
- * 处理改变表格选中状态
- * @param rowKeys 选中内容时，选择的内容的主键数组
- */
+/** 处理表格选中状态变化 */
 function handleCheckedChange(rowKeys: DataTableRowKey[]) {
-  checkedRowKeysRef.value = rowKeys
+  checkedRowKeys.value = rowKeys
 }
 
-/** ================= 表格 ================= */
-
-/** 格式化创建时间 */
+/** 格式化创建时间为 YYYY-MM-DD HH:mm */
 function formatTime(value: Date | string): string {
   if (!value) return '-'
   const d = new Date(value)
@@ -179,12 +171,23 @@ function formatTime(value: Date | string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-/** API Key 掩码展示（保留头尾，中间打码） */
+/** API Key 掩码展示（保留头尾 4 位，中间打码） */
 function maskKey(key: string): string {
   if (!key) return '-'
   if (key.length <= 8) return '****'
   return `${key.slice(0, 4)}****${key.slice(-4)}`
 }
+
+// ═════════════════════════════════════════════════════
+// 生命周期
+// ═════════════════════════════════════════════════════
+
+/** 页面挂载时加载配置列表 */
+onMounted(loadConfigs)
+
+// ═════════════════════════════════════════════════════
+// 表格列定义
+// ═════════════════════════════════════════════════════
 
 const columns: DataTableColumns<ApiConfigDTO> = [
   {
@@ -257,11 +260,7 @@ const columns: DataTableColumns<ApiConfigDTO> = [
           </template>
         </n-input>
         <n-space :size="12">
-          <n-button
-            type="error"
-            :disabled="checkedCount === 0"
-            @click="batchRemove"
-          >
+          <n-button type="error" :disabled="checkedCount === 0" @click="batchRemove">
             <template #icon>
               <NIcon :component="TrashOutline" />
             </template>
@@ -295,7 +294,7 @@ const columns: DataTableColumns<ApiConfigDTO> = [
 
   <!-- 新增 / 编辑弹窗 -->
   <n-modal
-    v-model:show="showModal"
+    v-model:show="isModalShow"
     preset="card"
     :title="editingId == null ? '新增配置' : '编辑配置'"
     :style="{ width: '480px' }"
@@ -323,8 +322,8 @@ const columns: DataTableColumns<ApiConfigDTO> = [
 
     <template #footer>
       <n-space justify="end">
-        <n-button :disabled="saving" @click="closeModal">取消</n-button>
-        <n-button type="primary" :loading="saving" @click="save">保存</n-button>
+        <n-button :disabled="isSaving" @click="closeModal">取消</n-button>
+        <n-button type="primary" :loading="isSaving" @click="save">保存</n-button>
       </n-space>
     </template>
   </n-modal>
