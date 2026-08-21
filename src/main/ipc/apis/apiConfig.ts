@@ -6,12 +6,53 @@ import { IpcChannels } from '@electron/ipc/channels'
 import type {
   ApiConfigDTO,
   CreateApiConfigParams,
+  findModelsParams,
+  FindModelsResult,
   UpdateApiConfigParams,
 } from '@shared/types/api_config'
 import { success, error, type ApiResponse } from '@shared/types/api-response'
-// import axios from 'axios'
-/** api 配置项的相关 api（类型契约来自 shared/types） */
+import axios from 'axios'
+
+
+type AuthType = 'bearer' | 'api-key' | 'query';
+
+interface ProviderConfig {
+  endpoint: string;               // 模型列表的相对路径，如 '/v1/models'
+  authType: AuthType;
+  headerName?: string;            // authType = 'api-key' 时使用的请求头名
+  apiKeyParam?: string;           // authType = 'query' 时使用的查询参数名，默认 'key'
+}
+
 export class ApiConfigController {
+
+  private _providerMap: Record<string, ProviderConfig> = {
+    'https://api.openai.com': {
+      endpoint: '/v1/models',
+      authType: 'bearer',
+    },
+    'https://api.deepseek.com': {
+      endpoint: '/v1/models',
+      authType: 'bearer',
+    },
+    // Anthropic (Claude)
+    'https://api.anthropic.com': {
+      endpoint: '/v1/models',
+      authType: 'api-key',
+      headerName: 'x-api-key',
+    },
+    // Google Gemini
+    'https://generativelanguage.googleapis.com': {
+      endpoint: '/v1beta/models',
+      authType: 'query',
+      apiKeyParam: 'key',
+    },
+    // OpenRouter
+    'https://openrouter.ai': {
+      endpoint: '/api/v1/models',
+      authType: 'bearer',
+    },
+  };
+
   /** 懒获取 api_config 表的仓库 */
   private get repo() {
     return dataSource.getRepository(ApiConfigEntity)
@@ -33,6 +74,9 @@ export class ApiConfigController {
       this.update(id, data),
     )
     ipcMain.handle(IpcChannels.apiConfig.remove, (_e, id: number) => this.remove(id))
+    ipcMain.handle(IpcChannels.apiConfig.findModels, (_e, cfg: findModelsParams) =>
+      this.findModels(cfg),
+    )
   }
 
   /** 查找所有配置项（含关联密钥） */
@@ -99,31 +143,68 @@ export class ApiConfigController {
 
   /**
    * 查找模型列表
+   *
+   * 根据 base_url 匹配 provider 配置，使用关联密钥调用各厂商的 /v1/models 接口，
+   * 返回可用模型 id 列表。
    */
-  // async findModels(
-  //   cfg: Pick<ApiConfigDTO, 'base_url' | 'key_id'>,
-  // ): Promise<ApiResponse<FindModelsResult>> {
+  async findModels(cfg: findModelsParams): Promise<ApiResponse<FindModelsResult>> {
+    try {
+      // 通过 key_id 查询关联的密钥
+      const apiKey = await this.keyRepo.findOneBy({ id: cfg.api_key_id })
+      if (!apiKey) return error(`未找到 id 为 ${cfg.api_key_id} 的密钥`)
 
-  //   // 通过 key_id 查询关联的密钥
-  //   const apiKey = await this.keyRepo.findOneBy({ id: cfg.key_id })
-  //   if (!apiKey) return error(`未找到 id 为 ${cfg.key_id} 的密钥`)
+      // 匹配 provider 配置，未命中则使用默认的 bearer + /v1/models
+      const provider = this._providerMap[cfg.base_url]
+      const endpoint = provider?.endpoint ?? '/v1/models'
+      const authType = provider?.authType ?? 'bearer'
 
-  //   let config = {
-  //     method: 'get',
-  //     maxBodyLength: Infinity,
-  //     url: cfg.base_url + 'model',
-  //     headers: {
-  //       'Accept': 'application/json',
-  //       'Authorization': `Bearer ${apiKey.key}`
-  //     }
-  //   };
+      // 构造请求头 / 查询参数
+      const headers: Record<string, string> = { Accept: 'application/json' }
+      let url = cfg.base_url + endpoint
 
-  //   axios(config)
-  //     .then((response) => {
-  //       console.log(JSON.stringify(response.data));
-  //     })
-  //     .catch((error) => {
-  //       console.log(error);
-  //     });
-  // }
+      switch (authType) {
+        case 'bearer':
+          headers.Authorization = `Bearer ${apiKey.key}`
+          break
+        case 'api-key':
+          headers[provider?.headerName ?? 'x-api-key'] = apiKey.key
+          break
+        case 'query': {
+          const param = provider?.apiKeyParam ?? 'key'
+          const sep = url.includes('?') ? '&' : '?'
+          url += `${sep}${param}=${encodeURIComponent(apiKey.key)}`
+          break
+        }
+      }
+
+      // 请求模型列表
+      const res = await axios({ method: 'get', url, headers, timeout: 10000 })
+
+      // 不同厂商返回结构不同，统一提取模型 id 列表
+      const data = res.data
+      let models: string[] = []
+
+      if (Array.isArray(data?.data)) {
+        // OpenAI / DeepSeek / OpenRouter 格式：{ data: [{ id: "xxx" }] }
+        models = data.data.map((m: { id: string }) => m.id).filter(Boolean)
+      } else if (Array.isArray(data?.models)) {
+        // Gemini 格式：{ models: [{ name: "models/xxx" }] }
+        models = data.models
+          .map((m: { name: string }) => m.name?.replace(/^models\//, ''))
+          .filter(Boolean)
+      } else if (Array.isArray(data)) {
+        // 直接是数组
+        models = data.map((m: { id?: string; name?: string }) => m.id ?? m.name).filter((v): v is string => !!v)
+      }
+
+      if (!models.length) {
+        return error('未从接口返回中解析到模型列表')
+      }
+
+      return success(models, '获取模型列表成功')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      return error(`获取模型列表失败：${msg}`)
+    }
+  }
 }

@@ -154,9 +154,9 @@ onMounted(loadConfigs)
 
 const columns: DataTableColumns<(typeof FormatedCfgs.value)[number]> = [
   {
-    type: 'selection',
+    type: 'selection',fixed:'left'
   },
-  { title: '名称', key: 'name', minWidth: 100, ellipsis: { tooltip: true }, resizable: true },
+  { title: '名称', key: 'name', minWidth: 100, ellipsis: { tooltip: true }, resizable: true,fixed: 'left' },
   {
     title: 'API 地址',
     key: 'base_url',
@@ -182,6 +182,7 @@ const columns: DataTableColumns<(typeof FormatedCfgs.value)[number]> = [
   {
     title: '操作',
     key: 'actions',
+    fixed: 'right',
     width: 200,
     render: (row) =>
       renderTableActions([

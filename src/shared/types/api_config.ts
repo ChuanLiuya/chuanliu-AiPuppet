@@ -41,3 +41,11 @@ export type UpdateApiConfigParams = Partial<Omit<ApiConfigDTO, 'id' | 'created_a
   api_key_id?: number
 }
 
+
+export interface findModelsParams {
+  api_key_id : number,
+  base_url: string
+}
+
+
+export type FindModelsResult = string[]

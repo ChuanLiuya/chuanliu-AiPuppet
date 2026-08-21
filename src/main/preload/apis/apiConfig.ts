@@ -16,6 +16,8 @@ import { IpcChannels } from '@electron/ipc/channels'
 import type {
   ApiConfigDTO,
   CreateApiConfigParams,
+  findModelsParams,
+  FindModelsResult,
   UpdateApiConfigParams
 } from '@shared/types/api_config'
 import type { ApiResponse } from '@shared/types/api-response'
@@ -75,6 +77,17 @@ export const apiConfigApi = {
    */
   remove: (id: number): Promise<ApiResponse<boolean>> =>
     ipcRenderer.invoke(IpcChannels.apiConfig.remove, id),
+
+  /**
+   * 获取模型列表
+   *
+   * 通道：api:apiConfig:findModels
+   *
+   * @param data 包含 base_url 和 api_key_id 的参数
+   * @returns 统一响应结构，result 为可用模型 id 列表
+   */
+  findModels: (data: findModelsParams): Promise<ApiResponse<FindModelsResult>> =>
+    ipcRenderer.invoke(IpcChannels.apiConfig.findModels, data),
 
 }
 

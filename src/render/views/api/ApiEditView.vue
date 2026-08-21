@@ -103,7 +103,7 @@ async function loadConfig() {
 }
 
 /**
- * 获取模型列表（当前 mock，后续对接后端 /v1/models 接口）
+ * 获取模型列表
  * 需要先填写 API 地址和 API Key
  */
 async function fetchModels() {
@@ -111,10 +111,19 @@ async function fetchModels() {
   if (form.key_id === null) return message.warning('请先选择 API 密钥')
   isLoadingModels.value = true
   try {
-    // TODO: 对接后端，调用 window.electronAPI.apiConfig.findModels(...)
-    await new Promise((resolve) => setTimeout(resolve, 800))
-    modelOptions.value = ['deepseek-chat', 'deepseek-reasoner', 'gpt-4o-mini', 'gpt-4o']
-    form.model = modelOptions.value[0]!
+    const res = await window.electronAPI.apiConfig.findModels({
+      base_url: form.base_url,
+      api_key_id: form.key_id,
+    })
+    debugLog('apiConfig.findModels', res)
+    if (!res.success) {
+      message.error(res.message)
+      return
+    }
+    modelOptions.value = res.result
+    if (modelOptions.value.length > 0) {
+      form.model = modelOptions.value[0]!
+    }
     message.success('获取模型列表成功')
   } catch (err) {
     message.error(`获取模型列表失败：${err}`)
