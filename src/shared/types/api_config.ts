@@ -15,9 +15,9 @@ export interface ApiConfigDTO {
    */
   base_url: string
   /**
-   * api密钥
+   * 关联的密钥id
    */
-  api_key: string
+  key_id: number
   /**
    * 模型名称
    */

@@ -4,10 +4,11 @@ import { DataSource } from 'typeorm'
 import { env } from '@electron/config/env'
 import { CatEntity } from '@electron/database/entities/cat'
 import { ApiConfigEntity } from '@electron/database/entities/api_config'
+import { ApiKeyEntity } from '@electron/database/entities/api_key'
 export const dataSource = new DataSource({
   type: 'better-sqlite3',
   database: env.dbPath,
-  entities: [CatEntity, ApiConfigEntity],
+  entities: [CatEntity, ApiConfigEntity, ApiKeyEntity],
   synchronize: true,
 })
 

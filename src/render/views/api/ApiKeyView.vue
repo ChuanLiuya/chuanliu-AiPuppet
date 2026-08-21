@@ -1,10 +1,19 @@
 <script setup lang="ts">
 /**
- * api连接页面。
+ * API 密钥管理页面。
+ * 管理可复用的 API 密钥，供 API 配置项关联使用。
+ * 新增 / 编辑使用弹窗（Modal），密钥字段较少无需独立页面。
  */
-import { NIcon, NTag, useDialog, type DataTableColumns, type DataTableRowKey } from 'naive-ui'
-import { AddOutline, KeyOutline, SearchOutline, TrashOutline } from '@vicons/ionicons5'
-import type { ApiConfigDTO } from '@shared/types/api_config'
+import {
+  NIcon,
+  NTag,
+  useDialog,
+  type DataTableColumns,
+  type DataTableRowKey,
+  type FormInst,
+  type FormRules,
+} from 'naive-ui'
+import { AddOutline, ArrowBackOutline, SearchOutline, TrashOutline } from '@vicons/ionicons5'
 import type { ApiKeyDTO } from '@shared/types/api_key'
 import { renderTableActions } from '@/utils/tableActions'
 
@@ -13,13 +22,20 @@ const dialog = useDialog()
 const router = useRouter()
 
 // ═════════════════════════════════════════════════════
+// 函数
+// ═════════════════════════════════════════════════════
+
+/** 返回 API 连接页 */
+function goBack() {
+  router.push('/api')
+}
+
+// ═════════════════════════════════════════════════════
 // 状态
 // ═════════════════════════════════════════════════════
 
-/** 配置项列表 */
-const configs = ref<ApiConfigDTO[]>([])
-/** 密钥列表（用于映射 key_id → 密钥名称） */
-const apiKeys = ref<ApiKeyDTO[]>([])
+/** 密钥列表 */
+const keys = ref<ApiKeyDTO[]>([])
 /** 列表是否处于加载中 */
 const isLoading = ref(false)
 /** 搜索关键字 */
@@ -27,95 +43,153 @@ const searchKeyword = ref('')
 /** 表格选中的行 key 列表，用于批量删除 */
 const checkedRowKeys = ref<DataTableRowKey[]>([])
 
-/** 按名称 / 地址 / 模型 关键字过滤后的列表 */
-const filteredConfigs = computed(() => {
+/** 弹窗是否显示 */
+const showModal = ref(false)
+/** 弹窗模式：新增 / 编辑 */
+const editingId = ref<number | null>(null)
+/** 是否正在保存 */
+const isSaving = ref(false)
+/** 表单引用 */
+const formRef = ref<FormInst | null>(null)
+/** 表单数据 */
+const form = reactive<{
+  name: string
+  key: string
+}>({
+  name: '',
+  key: '',
+})
+
+/** 弹窗标题 */
+const modalTitle = computed(() => (editingId.value == null ? '新增密钥' : '编辑密钥'))
+
+/** 按名称 / 密钥 关键字过滤后的列表 */
+const filteredKeys = computed(() => {
   const kw = searchKeyword.value.trim().toLowerCase()
-  if (!kw) return configs.value
-  return configs.value.filter((c) =>
-    [c.name, c.base_url, c.model].some((v) => v?.toLowerCase().includes(kw)),
+  if (!kw) return keys.value
+  return keys.value.filter((k) =>
+    [k.name, k.key].some((v) => v?.toLowerCase().includes(kw)),
   )
 })
 
-/** 当前选中的配置项数量（用于按钮文案与禁用态） */
+/** 当前选中的密钥数量（用于按钮文案与禁用态） */
 const checkedCount = computed(() => checkedRowKeys.value.length)
+
+/** 表单校验规则 */
+const formRules: FormRules = {
+  name: { required: true, message: '请填写密钥名称', trigger: 'blur' },
+  key: { required: true, message: '请填写密钥', trigger: 'blur' },
+}
 
 // ═════════════════════════════════════════════════════
 // 函数
 // ═════════════════════════════════════════════════════
 
-/** 加载全部配置项和密钥列表 */
-async function loadConfigs() {
+/** 加载全部密钥 */
+async function loadKeys() {
   isLoading.value = true
   try {
-    const [cfgRes, keyRes] = await Promise.all([
-      window.electronAPI.apiConfig.findAll(),
-      window.electronAPI.apiKey.findAll(),
-    ])
-    if (!cfgRes.success) {
-      message.error(cfgRes.message)
+    const res = await window.electronAPI.apiKey.findAll()
+    if (!res.success) {
+      message.error(res.message)
       return
     }
-    if (!keyRes.success) {
-      message.error(keyRes.message)
-      return
-    }
-    apiKeys.value = keyRes.result
-    configs.value = cfgRes.result
+    keys.value = res.result
   } catch (err) {
-    message.error(`加载配置失败：${err}`)
+    message.error(`加载密钥失败：${err}`)
   } finally {
     isLoading.value = false
   }
 }
 
-/** 跳转到新增配置页 */
+/** 打开新增弹窗 */
 function openCreate() {
-  router.push('/api/edit')
+  editingId.value = null
+  form.name = ''
+  form.key = ''
+  showModal.value = true
 }
 
-/** 跳转到密钥管理页 */
-function openKeyManager() {
-  router.push('/api/keys')
+/** 打开编辑弹窗 */
+async function openEdit(row: ApiKeyDTO) {
+  editingId.value = row.id
+  form.name = row.name
+  form.key = row.key
+  showModal.value = true
 }
 
-/** 跳转到编辑配置页 */
-function openEdit(row: ApiConfigDTO) {
-  router.push({ path: '/api/edit', query: { id: row.id } })
-}
-
-/** 删除单个配置项 */
-async function remove(row: ApiConfigDTO) {
+/** 保存（新增或编辑） */
+async function save() {
   try {
-    const res = await window.electronAPI.apiConfig.remove(row.id)
+    await formRef.value?.validate()
+  } catch {
+    return
+  }
+
+  isSaving.value = true
+  try {
+    if (editingId.value == null) {
+      const res = await window.electronAPI.apiKey.create({
+        name: form.name,
+        key: form.key,
+      })
+      if (!res.success) {
+        message.error(res.message)
+        return
+      }
+      if (res.message) message.success(res.message)
+    } else {
+      const res = await window.electronAPI.apiKey.update(editingId.value, {
+        name: form.name,
+        key: form.key,
+      })
+      if (!res.success) {
+        message.error(res.message)
+        return
+      }
+      if (res.message) message.success(res.message)
+    }
+    showModal.value = false
+    await loadKeys()
+  } catch (err) {
+    message.error(`保存失败：${err}`)
+  } finally {
+    isSaving.value = false
+  }
+}
+
+/** 删除单个密钥 */
+async function remove(row: ApiKeyDTO) {
+  try {
+    const res = await window.electronAPI.apiKey.remove(row.id)
     if (!res.success) {
       message.error(res.message)
       return
     }
     if (res.message) message.success(res.message)
-    await loadConfigs()
+    await loadKeys()
   } catch (err) {
     message.error(`删除失败：${err}`)
   }
 }
 
-/** 批量删除选中的配置项 */
+/** 批量删除选中的密钥 */
 async function batchRemove() {
   const ids = [...checkedRowKeys.value]
   if (!ids.length) return
 
-  // 取出选中行对应的名称，用于弹窗展示
-  const names = configs.value.filter((c) => ids.includes(c.id)).map((c) => c.name)
+  const names = keys.value.filter((k) => ids.includes(k.id)).map((k) => k.name)
 
   dialog.warning({
     title: '批量删除',
-    content: `确定删除选中的 ${ids.length} 项配置吗？\n${names.map((n) => `• ${n}`).join('\n')}`,
+    content: `确定删除选中的 ${ids.length} 个密钥吗？\n${names.map((n) => `• ${n}`).join('\n')}`,
     positiveText: '确定删除',
     negativeText: '取消',
     onPositiveClick: async () => {
       let failed = 0
       for (const id of ids) {
         try {
-          const res = await window.electronAPI.apiConfig.remove(id as number)
+          const res = await window.electronAPI.apiKey.remove(id as number)
           if (!res.success) {
             message.error(res.message)
             failed++
@@ -127,9 +201,9 @@ async function batchRemove() {
         }
       }
       checkedRowKeys.value = []
-      await loadConfigs()
+      await loadKeys()
       if (failed) {
-        message.warning(`删除完成，其中 ${failed} 项失败`)
+        message.warning(`删除完成，其中 ${failed} 个失败`)
       }
     },
   })
@@ -151,50 +225,35 @@ function formatTime(value: Date | string): string {
 
 /** 密钥掩码展示（保留头尾 4 位，中间打码） */
 function maskKey(key: string): string {
-  if (!key) return ''
+  if (!key) return '-'
   if (key.length <= 8) return '****'
   return `${key.slice(0, 4)}****${key.slice(-4)}`
-}
-
-/** 通过 key_id 获取密钥展示文本（名称 + 掩码密钥） */
-function getKeyLabel(keyId: number): string {
-  const key = apiKeys.value.find((k) => k.id === keyId)
-  if (!key) return '-'
-  const masked = maskKey(key.key)
-  return masked ? `${key.name}（${masked}）` : key.name
 }
 
 // ═════════════════════════════════════════════════════
 // 生命周期
 // ═════════════════════════════════════════════════════
 
-/** 页面挂载时加载配置列表 */
-onMounted(loadConfigs)
+/** 页面挂载时加载密钥列表 */
+onMounted(loadKeys)
 
 // ═════════════════════════════════════════════════════
 // 表格列定义
 // ═════════════════════════════════════════════════════
 
-const columns: DataTableColumns<ApiConfigDTO> = [
+const columns: DataTableColumns<ApiKeyDTO> = [
   {
     type: 'selection',
   },
-  { title: '名称', key: 'name', minWidth: 100, ellipsis: { tooltip: true }, resizable: true },
+  { title: '名称', key: 'name', minWidth: 120, ellipsis: { tooltip: true }, resizable: true },
   {
-    title: 'API 地址',
-    key: 'base_url',
+    title: '密钥',
+    key: 'key',
     minWidth: 100,
     ellipsis: { tooltip: true },
     resizable: true,
-  },
-  { title: '模型', key: 'model', minWidth: 80, resizable: true },
-  {
-    title: 'API 密钥',
-    key: 'key_id',
-    minWidth: 50,
-    resizable: true,
     render: (row) =>
-      h(NTag, { size: 'small', bordered: false }, { default: () => getKeyLabel(row.key_id) }),
+      h(NTag, { size: 'small', bordered: false }, { default: () => maskKey(row.key) }),
   },
   {
     title: '创建时间',
@@ -210,7 +269,6 @@ const columns: DataTableColumns<ApiConfigDTO> = [
     width: 200,
     render: (row) =>
       renderTableActions([
-        { label: '测试', type: 'info' },
         { label: '编辑', onClick: () => openEdit(row) },
         {
           label: '删除',
@@ -226,9 +284,14 @@ const columns: DataTableColumns<ApiConfigDTO> = [
 <template>
   <div class="page">
     <div class="page-header">
+      <n-button quaternary circle @click="goBack">
+        <template #icon>
+          <NIcon :component="ArrowBackOutline" />
+        </template>
+      </n-button>
       <div>
-        <n-h2 class="page-title">API 连接</n-h2>
-        <p class="page-desc">配置模型接口并测试连通性，连接成功即可开始角色扮演对话</p>
+        <n-h2 class="page-title">API 密钥</n-h2>
+        <p class="page-desc">管理可复用的 API 密钥，供 API 配置项关联使用</p>
       </div>
     </div>
 
@@ -237,7 +300,7 @@ const columns: DataTableColumns<ApiConfigDTO> = [
       <div class="toolbar">
         <n-input
           v-model:value="searchKeyword"
-          placeholder="搜索配置名称 / API 地址 / 模型"
+          placeholder="搜索密钥名称 / 密钥"
           clearable
           class="search-input"
         >
@@ -250,38 +313,61 @@ const columns: DataTableColumns<ApiConfigDTO> = [
             <template #icon>
               <NIcon :component="TrashOutline" />
             </template>
-            {{ checkedCount > 0 ? `删除 ${checkedCount} 个选中配置项` : '删除' }}
-          </n-button>
-          <n-button @click="openKeyManager">
-            <template #icon>
-              <NIcon :component="KeyOutline" />
-            </template>
-            密钥管理
+            {{ checkedCount > 0 ? `删除 ${checkedCount} 个选中密钥` : '删除' }}
           </n-button>
           <n-button type="primary" @click="openCreate">
             <template #icon>
               <NIcon :component="AddOutline" />
             </template>
-            新增配置
+            新增密钥
           </n-button>
         </n-space>
       </div>
 
-      <!-- 配置列表 -->
+      <!-- 密钥列表 -->
       <div class="table-card">
         <n-data-table
           @update:checked-row-keys="handleCheckedChange"
           :columns="columns"
-          :data="filteredConfigs"
+          :data="filteredKeys"
           :loading="isLoading"
           :row-key="(row) => row.id"
-          :scroll-x="1000"
+          :scroll-x="800"
           :pagination="false"
           flex-height
           class="table"
         />
       </div>
     </div>
+
+    <!-- 新增 / 编辑弹窗 -->
+    <n-modal
+      v-model:show="showModal"
+      preset="card"
+      :title="modalTitle"
+      style="width: 480px"
+      :bordered="false"
+    >
+      <n-form ref="formRef" :model="form" :rules="formRules" label-placement="top" size="large">
+        <n-form-item label="密钥名称" path="name">
+          <n-input v-model:value="form.name" placeholder="例如：DeepSeek 官方密钥" />
+        </n-form-item>
+        <n-form-item label="密钥" path="key">
+          <n-input
+            v-model:value="form.key"
+            type="password"
+            show-password-on="click"
+            placeholder="sk-..."
+          />
+        </n-form-item>
+      </n-form>
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="showModal = false">取消</n-button>
+          <n-button type="primary" :loading="isSaving" @click="save">保存</n-button>
+        </n-space>
+      </template>
+    </n-modal>
   </div>
 </template>
 
@@ -295,6 +381,9 @@ const columns: DataTableColumns<ApiConfigDTO> = [
 
   .page-header {
     flex: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     padding: 0 24px;
 
     .page-title {

@@ -26,4 +26,16 @@ export const IpcChannels = {
     /** 删除配置项 */
     remove: 'api:apiConfig:remove',
   },
+  apiKey: {
+    /** 查找所有密钥 */
+    findAll: 'api:apiKey:findAll',
+    /** 通过id查找单个密钥 */
+    findOneById: 'api:apiKey:findOneById',
+    /** 新建密钥 */
+    create: 'api:apiKey:create',
+    /** 修改密钥 */
+    update: 'api:apiKey:update',
+    /** 删除密钥 */
+    remove: 'api:apiKey:remove',
+  },
 } as const

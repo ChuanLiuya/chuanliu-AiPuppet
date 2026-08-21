@@ -6,7 +6,7 @@
  */
 import { NIcon } from 'naive-ui'
 import { ArrowBackOutline, DownloadOutline } from '@vicons/ionicons5'
-// import type { ApiConfigDTO } from '@shared/types/api_config'
+import type { ApiKeyDTO } from '@shared/types/api_key'
 
 const route = useRoute()
 const router = useRouter()
@@ -30,16 +30,18 @@ const urlOptions = [
 ]
 /** 拉取到的模型列表（用于下拉选择） */
 const modelOptions = ref<string[]>([])
+/** 密钥列表（用于下拉选择） */
+const apiKeyOptions = ref<ApiKeyDTO[]>([])
 /** 表单数据 */
 const form = reactive<{
   name: string
   base_url: null | string
-  api_key: string
+  key_id: null | number
   model: null | string
 }>({
   name: '',
   base_url: null,
-  api_key: '',
+  key_id: null,
   model: null,
 })
 
@@ -58,6 +60,20 @@ function goBack() {
   router.push('/api')
 }
 
+/** 加载密钥列表 */
+async function loadApiKeys() {
+  try {
+    const res = await window.electronAPI.apiKey.findAll()
+    if (!res.success) {
+      message.error(res.message)
+      return
+    }
+    apiKeyOptions.value = res.result
+  } catch (err) {
+    message.error(`加载密钥列表失败：${err}`)
+  }
+}
+
 /** 加载已有配置项（编辑模式） */
 async function loadConfig() {
   const id = Number(route.query.id)
@@ -74,7 +90,7 @@ async function loadConfig() {
       Object.assign(form, {
         name: config.name,
         base_url: config.base_url || null,
-        api_key: config.api_key,
+        key_id: config.key_id,
         model: config.model || null,
       })
     }
@@ -89,7 +105,7 @@ async function loadConfig() {
  */
 async function fetchModels() {
   if (form.base_url === null || !form.base_url.trim()) return message.warning('请先填写 API 地址')
-  if (!form.api_key.trim()) return message.warning('请先填写 API Key')
+  if (form.key_id === null) return message.warning('请先选择 API 密钥')
   isLoadingModels.value = true
   try {
     // TODO: 对接后端，调用 window.electronAPI.apiConfig.findModels(...)
@@ -108,11 +124,11 @@ async function fetchModels() {
 async function save() {
   const name = form.name
   const base_url = form.base_url
-  const api_key = form.api_key
+  const key_id = form.key_id
   const model = form.model
   if (!name.trim()) return message.warning('请填写配置名称')
   if (base_url === null || !base_url.trim()) return message.warning('请填写 API 地址')
-  if (!api_key.trim()) return message.warning('请填写 API Key')
+  if (key_id === null) return message.warning('请选择 API 密钥')
   if (model === null || !model.trim()) return message.warning('请选择模型')
 
   isSaving.value = true
@@ -121,7 +137,7 @@ async function save() {
       const res = await window.electronAPI.apiConfig.create({
         name,
         base_url,
-        api_key,
+        key_id,
         model,
       })
       if (!res.success) {
@@ -133,7 +149,7 @@ async function save() {
       const res = await window.electronAPI.apiConfig.update(editingId.value, {
         name,
         base_url,
-        api_key,
+        key_id,
         model,
       })
       if (!res.success) {
@@ -154,7 +170,10 @@ async function save() {
 // 生命周期
 // ═════════════════════════════════════════════════════
 
-onMounted(loadConfig)
+onMounted(() => {
+  loadApiKeys()
+  loadConfig()
+})
 </script>
 
 <template>
@@ -187,13 +206,12 @@ onMounted(loadConfig)
           >
           </n-select>
         </n-form-item>
-        <!-- 配置api密钥！ -->
-        <n-form-item label="API Key" required>
-          <n-input
-            v-model:value="form.api_key"
-            type="password"
-            show-password-on="click"
-            placeholder="sk-..."
+        <!-- 选择api密钥 -->
+        <n-form-item label="API 密钥" required>
+          <n-select
+            v-model:value="form.key_id"
+            :options="apiKeyOptions.map((k) => ({ label: k.name, value: k.id }))"
+            placeholder="请选择 API 密钥"
           />
         </n-form-item>
 

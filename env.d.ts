@@ -5,6 +5,7 @@
 // 这样改 preload 方法签名时 window 类型自动同步，无需再手写方法列表
 import type { CatApi } from './src/main/preload/apis/cat'
 import type { ApiConfigApi } from './src/main/preload/apis/apiConfig'
+import type { ApiKeyApi } from './src/main/preload/apis/apiKey'
 
 declare global {
   interface Window {
@@ -12,6 +13,7 @@ declare global {
     electronAPI: {
       cat: CatApi
       apiConfig: ApiConfigApi
+      apiKey: ApiKeyApi
     }
     /** 系统环境信息（preload 直接读取，不经过 IPC） */
     systemInfo: {

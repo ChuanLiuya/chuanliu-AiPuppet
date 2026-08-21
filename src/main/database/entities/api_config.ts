@@ -22,10 +22,10 @@ export class ApiConfigEntity implements ApiConfigDTO {
   @Column()
   base_url!: string
   /**
-   * api密钥
+   * 关联的密钥id
    */
   @Column()
-  api_key!: string
+  key_id!: number
   /**
    * 模型名称
    */
