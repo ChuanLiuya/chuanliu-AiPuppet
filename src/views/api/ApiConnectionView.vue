@@ -1,11 +1,18 @@
 <script setup lang="ts">
 // API 连接页：配置项的增删改查 + 搜索 + 测试连通性
-import { NIcon, NTag, type DataTableColumns } from 'naive-ui'
-import { AddOutline, SearchOutline } from '@vicons/ionicons5'
+import {
+  NIcon,
+  NTag,
+  useDialog,
+  type DataTableColumns,
+  type DataTableRowKey,
+} from 'naive-ui'
+import { AddOutline, SearchOutline, TrashOutline } from '@vicons/ionicons5'
 import type { ApiConfigDTO } from '@shared/types/api_config'
 import { renderTableActions } from '@/utils/tableActions'
 
 const message = useMessage()
+const dialog = useDialog()
 
 /** 配置项列表 */
 const configs = ref<ApiConfigDTO[]>([])
@@ -103,6 +110,11 @@ async function save() {
 
 /** ================= 删除 ================= */
 
+const checkedRowKeysRef = ref<DataTableRowKey[]>([])
+
+/** 当前选中的配置项数量（用于按钮文案与禁用态） */
+const checkedCount = computed(() => checkedRowKeysRef.value.length)
+
 async function remove(row: ApiConfigDTO) {
   try {
     await window.electronAPI.apiConfig.remove(row.id)
@@ -111,6 +123,49 @@ async function remove(row: ApiConfigDTO) {
   } catch (err) {
     message.error(`删除失败：${err}`)
   }
+}
+
+/** 批量删除选中的配置项 */
+async function batchRemove() {
+  const ids = [...checkedRowKeysRef.value]
+  if (!ids.length) return
+
+  // 取出选中行对应的名称，用于弹窗展示
+  const names = configs.value
+    .filter((c) => ids.includes(c.id))
+    .map((c) => c.name)
+
+  dialog.warning({
+    title: '批量删除',
+    content: `确定删除选中的 ${ids.length} 项配置吗？\n${names.map((n) => `• ${n}`).join('\n')}`,
+    positiveText: '确定删除',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      let failed = 0
+      for (const id of ids) {
+        try {
+          await window.electronAPI.apiConfig.remove(id as number)
+        } catch {
+          failed++
+        }
+      }
+      checkedRowKeysRef.value = []
+      await loadConfigs()
+      if (failed) {
+        message.warning(`删除完成，其中 ${failed} 项失败`)
+      } else {
+        message.success(`已删除 ${ids.length} 项配置`)
+      }
+    },
+  })
+}
+
+/**
+ * 处理改变表格选中状态
+ * @param rowKeys 选中内容时，选择的内容的主键数组
+ */
+function handleCheckedChange(rowKeys: DataTableRowKey[]) {
+  checkedRowKeysRef.value = rowKeys
 }
 
 /** ================= 表格 ================= */
@@ -189,7 +244,7 @@ const columns: DataTableColumns<ApiConfigDTO> = [
     </div>
 
     <div class="page-content">
-      <!-- 工具栏：搜索 + 新增 -->
+      <!-- 工具栏 -->
       <div class="toolbar">
         <n-input
           v-model:value="searchKeyword"
@@ -201,17 +256,30 @@ const columns: DataTableColumns<ApiConfigDTO> = [
             <NIcon :component="SearchOutline" />
           </template>
         </n-input>
-        <n-button type="primary" @click="openCreate">
-          <template #icon>
-            <NIcon :component="AddOutline" />
-          </template>
-          新增配置
-        </n-button>
+        <n-space :size="12">
+          <n-button
+            type="error"
+            :disabled="checkedCount === 0"
+            @click="batchRemove"
+          >
+            <template #icon>
+              <NIcon :component="TrashOutline" />
+            </template>
+            {{ checkedCount > 0 ? `删除 ${checkedCount} 个选中配置项` : '删除' }}
+          </n-button>
+          <n-button type="primary" @click="openCreate">
+            <template #icon>
+              <NIcon :component="AddOutline" />
+            </template>
+            新增配置
+          </n-button>
+        </n-space>
       </div>
 
       <!-- 配置列表 -->
       <div class="table-card">
         <n-data-table
+          @update:checked-row-keys="handleCheckedChange"
           :columns="columns"
           :data="filteredConfigs"
           :loading="isLoading"
