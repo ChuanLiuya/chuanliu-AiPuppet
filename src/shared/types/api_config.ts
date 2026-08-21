@@ -29,9 +29,15 @@ export interface ApiConfigDTO {
   created_at: Date
 }
 
-/** 创建 api 配置项的参数（id、created_at 由数据库自动生成） */
-export type CreateApiConfigParams = Omit<ApiConfigDTO, 'id' | 'created_at'>
+/** 创建 api 配置项的参数（id、created_at 由数据库自动生成，api_key 只需传 id） */
+export type CreateApiConfigParams = Omit<ApiConfigDTO, 'id' | 'created_at' | 'api_key'> & {
+  /** 关联的密钥 id */
+  api_key_id: number
+}
 
-/** 更新 api 配置项的可选字段 */
-export type UpdateApiConfigParams = Partial<Omit<ApiConfigDTO, 'id' | 'created_at'>>
+/** 更新 api 配置项的可选字段（api_key 只需传 id） */
+export type UpdateApiConfigParams = Partial<Omit<ApiConfigDTO, 'id' | 'created_at' | 'api_key'>> & {
+  /** 关联的密钥 id */
+  api_key_id?: number
+}
 

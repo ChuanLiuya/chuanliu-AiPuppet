@@ -59,7 +59,11 @@ export class ApiConfigController {
   /** 新建配置项 */
   async create(data: CreateApiConfigParams): Promise<ApiResponse<number>> {
     try {
-      const saved = await this.repo.save(this.repo.create(data))
+      const { api_key_id, ...rest } = data
+      const saved = await this.repo.save(this.repo.create({
+        ...rest,
+        api_key: { id: api_key_id },
+      }))
       return success(saved.id, '新增配置成功')
     } catch (err) {
       return error(`新增配置失败：${err}`)
@@ -69,8 +73,13 @@ export class ApiConfigController {
   /** 修改配置项 */
   async update(id: number, data: UpdateApiConfigParams): Promise<ApiResponse<ApiConfigDTO | null>> {
     try {
-      await this.repo.update(id, data)
-      const cfg = await this.repo.findOneBy({ id })
+      const { api_key_id, ...rest } = data
+      const updateData: Record<string, unknown> = { ...rest }
+      if (api_key_id != null) {
+        updateData.api_key = { id: api_key_id }
+      }
+      await this.repo.update(id, updateData)
+      const cfg = await this.repo.findOne({ where: { id }, relations: { api_key: true } })
       if (!cfg) return error(`未找到 id 为 ${id} 的配置项，更新失败`, null)
       return success(cfg, '保存配置成功')
     } catch (err) {

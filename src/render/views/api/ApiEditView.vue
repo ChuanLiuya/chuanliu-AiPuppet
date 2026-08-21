@@ -140,7 +140,7 @@ async function save() {
       const res = await window.electronAPI.apiConfig.create({
         name,
         base_url,
-        api_key: { id: key_id },
+        api_key_id: key_id,
         model,
       })
       debugLog('apiConfig.create', res)
@@ -153,7 +153,7 @@ async function save() {
       const res = await window.electronAPI.apiConfig.update(editingId.value, {
         name,
         base_url,
-        api_key: { id: key_id },
+        api_key_id: key_id,
         model,
       })
       debugLog('apiConfig.update', res)
