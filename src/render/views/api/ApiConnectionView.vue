@@ -2,12 +2,12 @@
 /**
  * api连接页面。
  */
-import { NIcon, NTag, useDialog, type DataTableColumns, type DataTableRowKey } from 'naive-ui'
+import { NIcon, useDialog, type DataTableColumns, type DataTableRowKey } from 'naive-ui'
 import { AddOutline, KeyOutline, SearchOutline, TrashOutline } from '@vicons/ionicons5'
 import type { ApiConfigDTO } from '@shared/types/api_config'
-import type { ApiKeyDTO } from '@shared/types/api_key'
 import { renderTableActions } from '@/utils/tableActions'
 import { debugLog } from '@/composables/useDebugLog'
+import { formatTime, maskKey } from '@/utils/format'
 
 const message = useMessage()
 const dialog = useDialog()
@@ -19,8 +19,22 @@ const router = useRouter()
 
 /** 配置项列表 */
 const configs = ref<ApiConfigDTO[]>([])
-/** 密钥列表（用于映射 key_id → 密钥名称） */
-const apiKeys = ref<ApiKeyDTO[]>([])
+
+/** 格式化后的配置项列表（时间格式化、密钥掩码展示） */
+const FormatedCfgs = computed(() =>
+  configs.value.map((c) => ({
+    ...c,
+    /** 格式化后的创建时间 */
+    created_at_text: formatTime(c.created_at),
+    /** 密钥展示文本（名称 + 掩码密钥），直接从 relation 的 api_key 取 */
+    api_key_text: (() => {
+      if (!c.api_key) return '-'
+      const masked = maskKey(c.api_key.key)
+      return masked ? `${c.api_key.name}(${masked})` : c.api_key.name
+    })(),
+  })),
+)
+
 /** 列表是否处于加载中 */
 const isLoading = ref(false)
 /** 搜索关键字 */
@@ -31,8 +45,8 @@ const checkedRowKeys = ref<DataTableRowKey[]>([])
 /** 按名称 / 地址 / 模型 关键字过滤后的列表 */
 const filteredConfigs = computed(() => {
   const kw = searchKeyword.value.trim().toLowerCase()
-  if (!kw) return configs.value
-  return configs.value.filter((c) =>
+  if (!kw) return FormatedCfgs.value
+  return FormatedCfgs.value.filter((c) =>
     [c.name, c.base_url, c.model].some((v) => v?.toLowerCase().includes(kw)),
   )
 })
@@ -44,25 +58,16 @@ const checkedCount = computed(() => checkedRowKeys.value.length)
 // 函数
 // ═════════════════════════════════════════════════════
 
-/** 加载全部配置项和密钥列表 */
+/** 加载全部配置项 */
 async function loadConfigs() {
   isLoading.value = true
   try {
-    const [cfgRes, keyRes] = await Promise.all([
-      window.electronAPI.apiConfig.findAll(),
-      window.electronAPI.apiKey.findAll(),
-    ])
+    const cfgRes = await window.electronAPI.apiConfig.findAll()
     debugLog('apiConfig.findAll', cfgRes)
-    debugLog('apiKey.findAll', keyRes)
     if (!cfgRes.success) {
       message.error(cfgRes.message)
       return
     }
-    if (!keyRes.success) {
-      message.error(keyRes.message)
-      return
-    }
-    apiKeys.value = keyRes.result
     configs.value = cfgRes.result
   } catch (err) {
     message.error(`加载配置失败：${err}`)
@@ -108,7 +113,7 @@ async function batchRemove() {
   if (!ids.length) return
 
   // 取出选中行对应的名称，用于弹窗展示
-  const names = configs.value.filter((c) => ids.includes(c.id)).map((c) => c.name)
+  const names = FormatedCfgs.value.filter((c) => ids.includes(c.id)).map((c) => c.name)
 
   dialog.warning({
     title: '批量删除',
@@ -145,30 +150,6 @@ function handleCheckedChange(rowKeys: DataTableRowKey[]) {
   checkedRowKeys.value = rowKeys
 }
 
-/** 格式化创建时间为 YYYY-MM-DD HH:mm */
-function formatTime(value: Date | string): string {
-  if (!value) return '-'
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return String(value)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
-/** 密钥掩码展示（保留头尾 4 位，中间打码） */
-function maskKey(key: string): string {
-  if (!key) return ''
-  if (key.length <= 8) return '****'
-  return `${key.slice(0, 4)}****${key.slice(-4)}`
-}
-
-/** 通过 key_id 获取密钥展示文本（名称 + 掩码密钥） */
-function getKeyLabel(keyId: number | undefined): string {
-  if (keyId == null) return '-'
-  const key = apiKeys.value.find((k) => k.id === keyId)
-  if (!key) return '-'
-  const masked = maskKey(key.key)
-  return masked ? `${key.name}（${masked}）` : key.name
-}
 
 // ═════════════════════════════════════════════════════
 // 生命周期
@@ -181,7 +162,7 @@ onMounted(loadConfigs)
 // 表格列定义
 // ═════════════════════════════════════════════════════
 
-const columns: DataTableColumns<ApiConfigDTO> = [
+const columns: DataTableColumns<(typeof FormatedCfgs.value)[number]> = [
   {
     type: 'selection',
   },
@@ -196,19 +177,17 @@ const columns: DataTableColumns<ApiConfigDTO> = [
   { title: '模型', key: 'model', minWidth: 80, resizable: true },
   {
     title: 'API 密钥',
-    key: 'api_key',
+    key: 'api_key_text',
     minWidth: 50,
+    ellipsis: { tooltip: true },
     resizable: true,
-    render: (row) =>
-      h(NTag, { size: 'small', bordered: false }, { default: () => getKeyLabel(row.api_key?.id) }),
   },
   {
     title: '创建时间',
-    key: 'created_at',
+    key: 'created_at_text',
     minWidth: 80,
     ellipsis: { tooltip: true },
     resizable: true,
-    render: (row) => formatTime(row.created_at),
   },
   {
     title: '操作',
