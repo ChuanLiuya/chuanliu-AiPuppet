@@ -6,7 +6,7 @@
  */
 import { NIcon } from 'naive-ui'
 import { ArrowBackOutline, DownloadOutline } from '@vicons/ionicons5'
-import type { ApiConfigDTO } from '@shared/types/api_config'
+// import type { ApiConfigDTO } from '@shared/types/api_config'
 
 const route = useRoute()
 const router = useRouter()
@@ -22,14 +22,25 @@ const editingId = ref<number | null>(null)
 const isSaving = ref(false)
 /** 是否正在获取模型列表 */
 const isLoadingModels = ref(false)
+const urlOptions = [
+  {
+    label: 'https://api.deepseek.com',
+    value: 'https://api.deepseek.com',
+  },
+]
 /** 拉取到的模型列表（用于下拉选择） */
 const modelOptions = ref<string[]>([])
 /** 表单数据 */
-const form = reactive({
+const form = reactive<{
+  name: string
+  base_url: null | string
+  api_key: string
+  model: null | string
+}>({
   name: '',
-  base_url: '',
+  base_url: null,
   api_key: '',
-  model: '',
+  model: null,
 })
 
 /** 模型下拉是否可用：有模型列表数据时才启用 */
@@ -57,9 +68,9 @@ async function loadConfig() {
     if (config) {
       Object.assign(form, {
         name: config.name,
-        base_url: config.base_url,
+        base_url: config.base_url || null,
         api_key: config.api_key,
-        model: config.model,
+        model: config.model || null,
       })
     }
   } catch (err) {
@@ -72,14 +83,14 @@ async function loadConfig() {
  * 需要先填写 API 地址和 API Key
  */
 async function fetchModels() {
-  if (!form.base_url.trim()) return message.warning('请先填写 API 地址')
+  if (form.base_url === null || !form.base_url.trim()) return message.warning('请先填写 API 地址')
   if (!form.api_key.trim()) return message.warning('请先填写 API Key')
-
   isLoadingModels.value = true
   try {
     // TODO: 对接后端，调用 window.electronAPI.apiConfig.findModels(...)
     await new Promise((resolve) => setTimeout(resolve, 800))
     modelOptions.value = ['deepseek-chat', 'deepseek-reasoner', 'gpt-4o-mini', 'gpt-4o']
+    form.model = modelOptions.value[0]!
     message.success('获取模型列表成功')
   } catch (err) {
     message.error(`获取模型列表失败：${err}`)
@@ -90,19 +101,32 @@ async function fetchModels() {
 
 /** 保存（新增或编辑） */
 async function save() {
-  if (!form.name.trim()) return message.warning('请填写配置名称')
-  if (!form.base_url.trim()) return message.warning('请填写 API 地址')
-  if (!form.api_key.trim()) return message.warning('请填写 API Key')
-  if (!form.model.trim()) return message.warning('请选择模型')
+  const name = form.name
+  const base_url = form.base_url
+  const api_key = form.api_key
+  const model = form.model
+  if (!name.trim()) return message.warning('请填写配置名称')
+  if (base_url === null || !base_url.trim()) return message.warning('请填写 API 地址')
+  if (!api_key.trim()) return message.warning('请填写 API Key')
+  if (model === null || !model.trim()) return message.warning('请选择模型')
 
   isSaving.value = true
   try {
-    const data = { ...form }
     if (editingId.value == null) {
-      await window.electronAPI.apiConfig.create(data)
+      await window.electronAPI.apiConfig.create({
+        name,
+        base_url,
+        api_key,
+        model,
+      })
       message.success('新增配置成功')
     } else {
-      await window.electronAPI.apiConfig.update(editingId.value, data)
+      await window.electronAPI.apiConfig.update(editingId.value, {
+        name,
+        base_url,
+        api_key,
+        model,
+      })
       message.success('保存成功')
     }
     router.push('/api')
@@ -135,12 +159,22 @@ onMounted(loadConfig)
     <!-- 表单区 -->
     <div class="page-content">
       <n-form label-placement="top" :show-feedback="false" size="large" class="edit-form">
+        <!-- 配置项目名称 -->
         <n-form-item label="配置名称" required>
           <n-input v-model:value="form.name" placeholder="例如：DS官方api-v4pro" />
         </n-form-item>
+        <!-- 配置api地址 -->
         <n-form-item label="API 地址" required>
-          <n-input v-model:value="form.base_url" placeholder="https://api.deepseek.com" />
+          <n-select
+            filterable
+            tag
+            :options="urlOptions"
+            v-model:value="form.base_url"
+            placeholder="https://api.deepseek.com"
+          >
+          </n-select>
         </n-form-item>
+        <!-- 配置api密钥！ -->
         <n-form-item label="API Key" required>
           <n-input
             v-model:value="form.api_key"
@@ -160,11 +194,7 @@ onMounted(loadConfig)
               :placeholder="isModelEnabled ? '请选择模型' : '请先获取模型列表'"
               class="model-select"
             />
-            <n-button
-              :loading="isLoadingModels"
-              :disabled="isLoadingModels"
-              @click="fetchModels"
-            >
+            <n-button :loading="isLoadingModels" :disabled="isLoadingModels" @click="fetchModels">
               <template #icon>
                 <NIcon :component="DownloadOutline" />
               </template>
