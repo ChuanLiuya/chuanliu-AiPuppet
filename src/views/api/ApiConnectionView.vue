@@ -44,7 +44,12 @@ const checkedCount = computed(() => checkedRowKeys.value.length)
 async function loadConfigs() {
   isLoading.value = true
   try {
-    configs.value = await window.electronAPI.apiConfig.findAll()
+    const res = await window.electronAPI.apiConfig.findAll()
+    if (!res.success) {
+      message.error(res.message)
+      return
+    }
+    configs.value = res.result
   } catch (err) {
     message.error(`加载配置失败：${err}`)
   } finally {
@@ -65,8 +70,12 @@ function openEdit(row: ApiConfigDTO) {
 /** 删除单个配置项 */
 async function remove(row: ApiConfigDTO) {
   try {
-    await window.electronAPI.apiConfig.remove(row.id)
-    message.success(`已删除「${row.name}」`)
+    const res = await window.electronAPI.apiConfig.remove(row.id)
+    if (!res.success) {
+      message.error(res.message)
+      return
+    }
+    if (res.message) message.success(res.message)
     await loadConfigs()
   } catch (err) {
     message.error(`删除失败：${err}`)
@@ -90,7 +99,13 @@ async function batchRemove() {
       let failed = 0
       for (const id of ids) {
         try {
-          await window.electronAPI.apiConfig.remove(id as number)
+          const res = await window.electronAPI.apiConfig.remove(id as number)
+          if (!res.success) {
+            message.error(res.message)
+            failed++
+          } else if (res.message) {
+            message.success(res.message)
+          }
         } catch {
           failed++
         }
@@ -99,8 +114,6 @@ async function batchRemove() {
       await loadConfigs()
       if (failed) {
         message.warning(`删除完成，其中 ${failed} 项失败`)
-      } else {
-        message.success(`已删除 ${ids.length} 项配置`)
       }
     },
   })

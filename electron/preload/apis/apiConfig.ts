@@ -18,6 +18,7 @@ import type {
   CreateApiConfigParams,
   UpdateApiConfigParams
 } from '@shared/types/api_config'
+import type { ApiResponse } from '@shared/types/api-response'
 
 export const apiConfigApi = {
   /**
@@ -25,9 +26,10 @@ export const apiConfigApi = {
    *
    * 通道：api:apiConfig:findAll
    *
-   * @returns 所有配置项的数组
+   * @returns 统一响应结构，result 为所有配置项的数组
    */
-  findAll: (): Promise<ApiConfigDTO[]> => ipcRenderer.invoke(IpcChannels.apiConfig.findAll),
+  findAll: (): Promise<ApiResponse<ApiConfigDTO[]>> =>
+    ipcRenderer.invoke(IpcChannels.apiConfig.findAll),
 
   /**
    * 通过 id 查找单个配置项
@@ -35,9 +37,9 @@ export const apiConfigApi = {
    * 通道：api:apiConfig:findOneById
    *
    * @param id 配置项的 id
-   * @returns 找到的配置项；不存在时返回 null
+   * @returns 统一响应结构，result 为找到的配置项；不存在时为 null
    */
-  findOneById: (id: number): Promise<ApiConfigDTO | null> =>
+  findOneById: (id: number): Promise<ApiResponse<ApiConfigDTO | null>> =>
     ipcRenderer.invoke(IpcChannels.apiConfig.findOneById, id),
 
   /**
@@ -46,9 +48,9 @@ export const apiConfigApi = {
    * 通道：api:apiConfig:create
    *
    * @param data 创建参数（不含 id、created_at，由数据库自动生成）
-   * @returns 新创建记录的 id
+   * @returns 统一响应结构，result 为新创建记录的 id
    */
-  create: (data: CreateApiConfigParams): Promise<number> =>
+  create: (data: CreateApiConfigParams): Promise<ApiResponse<number>> =>
     ipcRenderer.invoke(IpcChannels.apiConfig.create, data),
 
   /**
@@ -58,9 +60,9 @@ export const apiConfigApi = {
    *
    * @param id   要修改的配置项的 id
    * @param data 需要更新的字段（只传要改的字段）
-   * @returns 更新后的配置项；id 不存在时返回 null
+   * @returns 统一响应结构，result 为更新后的配置项；id 不存在时为 null
    */
-  update: (id: number, data: UpdateApiConfigParams): Promise<ApiConfigDTO | null> =>
+  update: (id: number, data: UpdateApiConfigParams): Promise<ApiResponse<ApiConfigDTO | null>> =>
     ipcRenderer.invoke(IpcChannels.apiConfig.update, id, data),
 
   /**
@@ -69,9 +71,10 @@ export const apiConfigApi = {
    * 通道：api:apiConfig:remove
    *
    * @param id 要删除的配置项的 id
-   * @returns 是否删除成功
+   * @returns 统一响应结构，result 为是否删除成功
    */
-  remove: (id: number): Promise<boolean> => ipcRenderer.invoke(IpcChannels.apiConfig.remove, id),
+  remove: (id: number): Promise<ApiResponse<boolean>> =>
+    ipcRenderer.invoke(IpcChannels.apiConfig.remove, id),
 
 }
 

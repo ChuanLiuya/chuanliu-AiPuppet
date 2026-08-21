@@ -14,6 +14,7 @@
 import { ipcRenderer } from 'electron'
 import { IpcChannels } from '@electron/ipc/channels'
 import type { CatDTO, CatCreateInput, CatUpdateInput } from '@shared/types/cat'
+import type { ApiResponse } from '@shared/types/api-response'
 
 export const catApi = {
   /**
@@ -21,9 +22,9 @@ export const catApi = {
    *
    * 通道：api:cat:findAll
    *
-   * @returns 所有猫记录的数组
+   * @returns 统一响应结构，result 为所有猫记录的数组
    */
-  findAll: (): Promise<CatDTO[]> => ipcRenderer.invoke(IpcChannels.cat.findAll),
+  findAll: (): Promise<ApiResponse<CatDTO[]>> => ipcRenderer.invoke(IpcChannels.cat.findAll),
 
   /**
    * 通过 id 查找单个小猫
@@ -31,9 +32,9 @@ export const catApi = {
    * 通道：api:cat:findOneById
    *
    * @param id 猫的 id
-   * @returns 找到的猫记录；不存在时返回 null
+   * @returns 统一响应结构，result 为找到的猫记录；不存在时为 null
    */
-  findOneById: (id: number): Promise<CatDTO | null> =>
+  findOneById: (id: number): Promise<ApiResponse<CatDTO | null>> =>
     ipcRenderer.invoke(IpcChannels.cat.findOneById, id),
 
   /**
@@ -42,9 +43,9 @@ export const catApi = {
    * 通道：api:cat:create
    *
    * @param data 创建入参（不含 id，id 由数据库自增生成）
-   * @returns 新创建记录的 id
+   * @returns 统一响应结构，result 为新创建记录的 id
    */
-  create: (data: CatCreateInput): Promise<number> =>
+  create: (data: CatCreateInput): Promise<ApiResponse<number>> =>
     ipcRenderer.invoke(IpcChannels.cat.create, data),
 
   /**
@@ -54,9 +55,9 @@ export const catApi = {
    *
    * @param id   要修改的猫的 id
    * @param data 需要更新的字段（只传要改的字段）
-   * @returns 更新后的猫记录；id 不存在时返回 null
+   * @returns 统一响应结构，result 为更新后的猫记录；id 不存在时为 null
    */
-  update: (id: number, data: CatUpdateInput): Promise<CatDTO | null> =>
+  update: (id: number, data: CatUpdateInput): Promise<ApiResponse<CatDTO | null>> =>
     ipcRenderer.invoke(IpcChannels.cat.update, id, data),
 
   /**
@@ -65,9 +66,10 @@ export const catApi = {
    * 通道：api:cat:remove
    *
    * @param id 要删除的猫的 id
-   * @returns 是否删除成功
+   * @returns 统一响应结构，result 为是否删除成功
    */
-  remove: (id: number): Promise<boolean> => ipcRenderer.invoke(IpcChannels.cat.remove, id),
+  remove: (id: number): Promise<ApiResponse<boolean>> =>
+    ipcRenderer.invoke(IpcChannels.cat.remove, id),
 }
 
 /** catApi 的类型，供 `env.d.ts` 声明 `window.electronAPI.cat` 使用 */

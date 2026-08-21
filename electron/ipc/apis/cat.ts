@@ -3,6 +3,7 @@ import { dataSource } from '@electron/database'
 import { CatEntity } from '@electron/database/entities/cat'
 import { IpcChannels } from '@electron/ipc/channels'
 import type { CatDTO, CatCreateInput, CatUpdateInput } from '@shared/types/cat'
+import { success, error, type ApiResponse } from '@shared/types/api-response'
 
 /** 猫的相关api（类型契约来自 shared/types） */
 export class CatController {
@@ -23,31 +24,56 @@ export class CatController {
   }
 
   /** 查找所有小猫 */
-  async findAll(): Promise<CatDTO[]> {
-    return this.repo.find()
+  async findAll(): Promise<ApiResponse<CatDTO[]>> {
+    try {
+      const list = await this.repo.find()
+      return success(list)
+    } catch (err) {
+      return error(`查询小猫列表失败：${err}`)
+    }
   }
 
   /** 通过id查找单个小猫 */
-  async findOneById(id: number): Promise<CatDTO | null> {
-    return this.repo.findOneBy({ id })
+  async findOneById(id: number): Promise<ApiResponse<CatDTO | null>> {
+    try {
+      const cat = await this.repo.findOneBy({ id })
+      if (!cat) return error(`未找到 id 为 ${id} 的小猫`, null)
+      return success(cat)
+    } catch (err) {
+      return error(`查询小猫失败：${err}`, null)
+    }
   }
 
   /** 创建一个小猫 */
-  async create(data: CatCreateInput): Promise<number> {
-    const saved = await this.repo.save(this.repo.create(data))
-    return saved.id
+  async create(data: CatCreateInput): Promise<ApiResponse<number>> {
+    try {
+      const saved = await this.repo.save(this.repo.create(data))
+      return success(saved.id, '创建小猫成功')
+    } catch (err) {
+      return error(`创建小猫失败：${err}`)
+    }
   }
 
   /** 修改一个小猫 */
-  async update(id: number, data: CatUpdateInput): Promise<CatDTO | null> {
-    await this.repo.update(id, data)
-    return this.repo.findOneBy({ id })
+  async update(id: number, data: CatUpdateInput): Promise<ApiResponse<CatDTO | null>> {
+    try {
+      await this.repo.update(id, data)
+      const cat = await this.repo.findOneBy({ id })
+      if (!cat) return error(`未找到 id 为 ${id} 的小猫，更新失败`, null)
+      return success(cat, '修改小猫成功')
+    } catch (err) {
+      return error(`修改小猫失败：${err}`, null)
+    }
   }
 
   /** 删除一个小猫 */
-  async remove(id: number): Promise<boolean> {
-    await this.repo.delete(id)
-    return true
+  async remove(id: number): Promise<ApiResponse<boolean>> {
+    try {
+      await this.repo.delete(id)
+      return success(true, '删除小猫成功')
+    } catch (err) {
+      return error(`删除小猫失败：${err}`, false)
+    }
   }
 }
 

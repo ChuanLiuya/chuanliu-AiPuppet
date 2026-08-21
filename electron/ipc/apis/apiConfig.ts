@@ -7,6 +7,7 @@ import type {
   CreateApiConfigParams,
   UpdateApiConfigParams,
 } from '@shared/types/api_config'
+import { success, error, type ApiResponse } from '@shared/types/api-response'
 
 /** api 配置项的相关 api（类型契约来自 shared/types） */
 export class ApiConfigController {
@@ -29,31 +30,56 @@ export class ApiConfigController {
   }
 
   /** 查找所有配置项 */
-  async findAll(): Promise<ApiConfigDTO[]> {
-    return this.repo.find()
+  async findAll(): Promise<ApiResponse<ApiConfigDTO[]>> {
+    try {
+      const list = await this.repo.find()
+      return success(list)
+    } catch (err) {
+      return error(`查询配置列表失败：${err}`)
+    }
   }
 
   /** 通过 id 查找单个配置项 */
-  async findOneById(id: number): Promise<ApiConfigDTO | null> {
-    return this.repo.findOneBy({ id })
+  async findOneById(id: number): Promise<ApiResponse<ApiConfigDTO | null>> {
+    try {
+      const cfg = await this.repo.findOneBy({ id })
+      if (!cfg) return error(`未找到 id 为 ${id} 的配置项`, null)
+      return success(cfg)
+    } catch (err) {
+      return error(`查询配置项失败：${err}`, null)
+    }
   }
 
   /** 新建配置项 */
-  async create(data: CreateApiConfigParams): Promise<number> {
-    const saved = await this.repo.save(this.repo.create(data))
-    return saved.id
+  async create(data: CreateApiConfigParams): Promise<ApiResponse<number>> {
+    try {
+      const saved = await this.repo.save(this.repo.create(data))
+      return success(saved.id, '新增配置成功')
+    } catch (err) {
+      return error(`新增配置失败：${err}`)
+    }
   }
 
   /** 修改配置项 */
-  async update(id: number, data: UpdateApiConfigParams): Promise<ApiConfigDTO | null> {
-    await this.repo.update(id, data)
-    return this.repo.findOneBy({ id })
+  async update(id: number, data: UpdateApiConfigParams): Promise<ApiResponse<ApiConfigDTO | null>> {
+    try {
+      await this.repo.update(id, data)
+      const cfg = await this.repo.findOneBy({ id })
+      if (!cfg) return error(`未找到 id 为 ${id} 的配置项，更新失败`, null)
+      return success(cfg, '保存配置成功')
+    } catch (err) {
+      return error(`保存配置失败：${err}`, null)
+    }
   }
 
   /** 删除配置项 */
-  async remove(id: number): Promise<boolean> {
-    await this.repo.delete(id)
-    return true
+  async remove(id: number): Promise<ApiResponse<boolean>> {
+    try {
+      await this.repo.delete(id)
+      return success(true, '删除配置成功')
+    } catch (err) {
+      return error(`删除配置失败：${err}`, false)
+    }
   }
 
   /**
@@ -61,6 +87,6 @@ export class ApiConfigController {
    */
   // async findModels(
   //   cfg: Pick<ApiConfigDTO, 'base_url' | 'api_key' | 'model'>,
-  // ): Promise<FindModelsResult> {
+  // ): Promise<ApiResponse<FindModelsResult>> {
   // }
 }

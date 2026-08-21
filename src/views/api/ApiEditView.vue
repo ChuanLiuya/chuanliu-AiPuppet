@@ -64,7 +64,12 @@ async function loadConfig() {
   if (!id) return
   editingId.value = id
   try {
-    const config = await window.electronAPI.apiConfig.findOneById(id)
+    const res = await window.electronAPI.apiConfig.findOneById(id)
+    if (!res.success) {
+      message.error(res.message)
+      return
+    }
+    const config = res.result
     if (config) {
       Object.assign(form, {
         name: config.name,
@@ -113,21 +118,29 @@ async function save() {
   isSaving.value = true
   try {
     if (editingId.value == null) {
-      await window.electronAPI.apiConfig.create({
+      const res = await window.electronAPI.apiConfig.create({
         name,
         base_url,
         api_key,
         model,
       })
-      message.success('新增配置成功')
+      if (!res.success) {
+        message.error(res.message)
+        return
+      }
+      if (res.message) message.success(res.message)
     } else {
-      await window.electronAPI.apiConfig.update(editingId.value, {
+      const res = await window.electronAPI.apiConfig.update(editingId.value, {
         name,
         base_url,
         api_key,
         model,
       })
-      message.success('保存成功')
+      if (!res.success) {
+        message.error(res.message)
+        return
+      }
+      if (res.message) message.success(res.message)
     }
     router.push('/api')
   } catch (err) {
