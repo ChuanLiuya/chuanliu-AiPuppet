@@ -6,6 +6,7 @@ import CharacterLibraryView from '../views/characters/CharacterLibraryView.vue'
 import LorebookView from '../views/lorebook/LorebookView.vue'
 import SettingsView from '../views/settings/SettingsView.vue'
 import ApiConnectionView from '../views/api/ApiConnectionView.vue'
+import ApiEditView from '../views/api/ApiEditView.vue'
 
 const router = createRouter({
   history: createWebHashHistory(),
