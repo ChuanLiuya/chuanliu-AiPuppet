@@ -3,8 +3,8 @@
 // preload 通过 contextBridge 暴露到 window 上的 API 类型声明
 // 数据契约来自 shared/types（shared/types/cat.ts），入口形状（electronAPI.cat）从 preload 的 catApi 推导（typeof）
 // 这样改 preload 方法签名时 window 类型自动同步，无需再手写方法列表
-import type { CatApi } from './electron/preload/apis/cat'
-import type { ApiConfigApi } from './electron/preload/apis/apiConfig'
+import type { CatApi } from './src/main/preload/apis/cat'
+import type { ApiConfigApi } from './src/main/preload/apis/apiConfig'
 
 declare global {
   interface Window {

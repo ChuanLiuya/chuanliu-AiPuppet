@@ -26,23 +26,23 @@ export default defineConfig({
           'naive-ui': ['useMessage', 'useDialog', 'useNotification', 'useLoadingBar'],
         },
       ],
-      dts: 'src/auto-imports.d.ts',
+      dts: 'src/render/auto-imports.d.ts',
     }),
     // 按需自动引入 Naive UI 组件（模板中直接使用 NButton 等，无需手动 import）
-    // 生成的类型声明写入 src/components.d.ts（在 tsconfig.app.json include 范围内）
+    // 生成的类型声明写入 src/render/components.d.ts（在 tsconfig.app.json include 范围内）
     Components({
       resolvers: [NaiveUiResolver()],
-      dts: 'src/components.d.ts',
+      dts: 'src/render/components.d.ts',
     }),
     electron({
       main: {
-        // 主进程入口（electron/main/index.ts），构建产物输出到 dist-electron/
-        entry: 'electron/main/index.ts',
+        // 主进程入口（src/main/main/index.ts），构建产物输出到 dist-electron/
+        entry: 'src/main/main/index.ts',
         vite: {
           build: {
             // 固定输出为 main.js，保证 package.json 的 main 字段不用跟着改
             lib: {
-              entry: 'electron/main/index.ts',
+              entry: 'src/main/main/index.ts',
               formats: ['es'],
               fileName: () => 'main.js',
             },
@@ -53,8 +53,8 @@ export default defineConfig({
         },
       },
       preload: {
-        // 预加载脚本入口（electron/preload/index.ts）
-        input: 'electron/preload/index.ts',
+        // 预加载脚本入口（src/main/preload/index.ts）
+        input: 'src/main/preload/index.ts',
         vite: {
           build: {
             // 固定输出为 preload.mjs，保持主进程里对 preload 的引用不变
@@ -70,11 +70,12 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
-      // 主进程路径别名：@electron 指向 electron/ 目录
-      '@electron': fileURLToPath(new URL('./electron', import.meta.url)),
-      // 前后端共享类型：@shared 指向 shared/ 目录
-      '@shared': fileURLToPath(new URL('./shared', import.meta.url)),
+      // 渲染进程路径别名：@ 指向 src/render/ 目录
+      '@': fileURLToPath(new URL('./src/render', import.meta.url)),
+      // 主进程路径别名：@electron 指向 src/main/ 目录
+      '@electron': fileURLToPath(new URL('./src/main', import.meta.url)),
+      // 前后端共享类型：@shared 指向 src/shared/ 目录
+      '@shared': fileURLToPath(new URL('./src/shared', import.meta.url)),
     },
   },
 })
