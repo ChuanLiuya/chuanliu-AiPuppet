@@ -20,7 +20,7 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
     <AppSidebar v-if="!uiStore.immersive" />
     <n-layout-content
       :native-scrollbar="false"
-      content-style="height: 100%; display: flex; flex-direction: column; overflow: hidden;"
+      content-style="height: 100%; width:100%; display: flex; flex-direction: column; overflow: hidden;"
     >
       <RouterView />
     </n-layout-content>
@@ -30,8 +30,18 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
 <style scoped>
 .app-frame {
   height: 100vh;
+  width: 100vw;
   overflow: hidden;
 }
 
+/* n-layout-content 内部容器防止溢出 */
+.app-frame :deep(.n-layout-content) {
+  min-width: 0;
+  overflow: hidden;
+}
 
+/* n-layout-sider 防止溢出 */
+.app-frame :deep(.n-layout-sider) {
+  flex-shrink: 0;
+}
 </style>
