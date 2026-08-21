@@ -53,4 +53,8 @@ export const IpcChannels = {
     /** 删除单个设置项 */
     remove: 'api:appSetting:remove',
   },
+  chat: {
+    /** ai对话！ */
+    chat: 'api:chat:chat'
+  }
 } as const
