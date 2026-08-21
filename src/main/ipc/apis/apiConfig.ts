@@ -35,20 +35,20 @@ export class ApiConfigController {
     ipcMain.handle(IpcChannels.apiConfig.remove, (_e, id: number) => this.remove(id))
   }
 
-  /** 查找所有配置项 */
+  /** 查找所有配置项（含关联密钥） */
   async findAll(): Promise<ApiResponse<ApiConfigDTO[]>> {
     try {
-      const list = await this.repo.find()
+      const list = await this.repo.find({ relations: { api_key: true } })
       return success(list)
     } catch (err) {
       return error(`查询配置列表失败：${err}`)
     }
   }
 
-  /** 通过 id 查找单个配置项 */
+  /** 通过 id 查找单个配置项（含关联密钥） */
   async findOneById(id: number): Promise<ApiResponse<ApiConfigDTO | null>> {
     try {
-      const cfg = await this.repo.findOneBy({ id })
+      const cfg = await this.repo.findOne({ where: { id }, relations: { api_key: true } })
       if (!cfg) return error(`未找到 id 为 ${id} 的配置项`, null)
       return success(cfg)
     } catch (err) {

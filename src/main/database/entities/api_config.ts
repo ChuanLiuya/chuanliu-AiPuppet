@@ -2,7 +2,8 @@
  * AI的api配置表
  */
 import { ApiConfigDTO } from '@shared/types/api_config'
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm'
+import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
+import { ApiKeyEntity } from './api_key'
 
 @Entity('api_config')
 export class ApiConfigEntity implements ApiConfigDTO {
@@ -22,10 +23,18 @@ export class ApiConfigEntity implements ApiConfigDTO {
   @Column()
   base_url!: string
   /**
-   * 关联的密钥id
+   * 关联的密钥id（外键）
    */
-  @Column()
+  @Column({ name: 'key_id' })
   key_id!: number
+  /**
+   * 关联的密钥（多对一），外键列为 key_id
+   */
+  @ManyToOne(() => ApiKeyEntity, (apiKey) => apiKey.api_configs, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'key_id' })
+  api_key!: ApiKeyEntity
   /**
    * 模型名称
    */
