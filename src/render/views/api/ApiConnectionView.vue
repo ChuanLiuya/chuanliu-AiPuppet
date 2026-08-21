@@ -2,9 +2,11 @@
 /**
  * api连接页面。
  */
-import { NIcon, useDialog, type DataTableColumns, type DataTableRowKey } from 'naive-ui'
-import { AddOutline, KeyOutline, SearchOutline, TrashOutline } from '@vicons/ionicons5'
+import { NIcon, NTag, useDialog, type DataTableColumns, type DataTableRowKey } from 'naive-ui'
+import { h } from 'vue'
+import { AddOutline, CheckmarkCircle, KeyOutline, SearchOutline, TrashOutline } from '@vicons/ionicons5'
 import type { ApiConfigDTO } from '@shared/types/api_config'
+import { AppSettingKey } from '@shared/constants/app_setting'
 import { renderTableActions } from '@/utils/tableActions'
 import { debugLog } from '@/composables/useDebugLog'
 import { formatTime, maskKey } from '@/utils/format'
@@ -22,6 +24,14 @@ type FormatedCfg = ApiConfigDTO & {
 
 /** 配置项列表 */
 const configs = ref<ApiConfigDTO[]>([])
+
+/** 当前选中的配置项 ID（从 app_setting 表读取） */
+const selectedConfigId = ref<number | null>(null)
+
+/** 当前选中的配置项对象 */
+const selectedConfig = computed(() =>
+  configs.value.find((c) => c.id === selectedConfigId.value) ?? null,
+)
 
 /** 格式化后的配置项列表（时间格式化、密钥掩码展示） */
 const formatedCfgs = computed<FormatedCfg[]>(() =>
@@ -68,10 +78,37 @@ async function loadConfigs() {
       return
     }
     configs.value = cfgRes.result
+    // 加载用户选中的配置
+    const settingRes = await window.electronAPI.appSetting.get(
+      AppSettingKey.SELECTED_API_CONFIG_ID,
+    )
+    debugLog('appSetting.get', settingRes)
+    if (settingRes.success && settingRes.result) {
+      selectedConfigId.value = Number(settingRes.result)
+    }
   } catch (err) {
     message.error(`加载配置失败：${err}`)
   } finally {
     isLoading.value = false
+  }
+}
+
+/** 将某个配置设为当前使用 */
+async function setSelected(row: ApiConfigDTO) {
+  try {
+    const res = await window.electronAPI.appSetting.set(
+      AppSettingKey.SELECTED_API_CONFIG_ID,
+      String(row.id),
+    )
+    debugLog('appSetting.set', res)
+    if (!res.success) {
+      message.error(res.message)
+      return
+    }
+    selectedConfigId.value = row.id
+    message.success(`已将「${row.name}」设为当前使用的 API 配置`)
+  } catch (err) {
+    message.error(`设置失败：${err}`)
   }
 }
 
@@ -150,7 +187,7 @@ function handleCheckedChange(rowKeys: DataTableRowKey[]) {
 }
 
 /** 测试单个配置项的连接是否正常 */
-async function handleClickTestisApiConnected(row: FormatedCfg) {
+async function handleClickTestisApiConnected(row: ApiConfigDTO) {
   const msg = message.loading('正在测试连接…', { duration: 0 })
   try {
     const res = await window.electronAPI.apiConfig.testConnection(row.id)
@@ -186,6 +223,17 @@ const columns: DataTableColumns<(typeof formatedCfgs.value)[number]> = [
     ellipsis: { tooltip: true },
     resizable: true,
     fixed: 'left',
+    render: (row) =>
+      h('div', { style: 'display: flex; align-items: center; gap: 6px;' }, [
+        h('span', null, row.name),
+        row.id === selectedConfigId.value
+          ? h(
+              NTag,
+              { size: 'small', type: 'success', round: true, bordered: false },
+              { default: () => '当前使用' },
+            )
+          : null,
+      ]),
   },
   {
     title: 'API 地址',
@@ -213,9 +261,15 @@ const columns: DataTableColumns<(typeof formatedCfgs.value)[number]> = [
     title: '操作',
     key: 'actions',
     fixed: 'right',
-    width: 200,
+    width: 260,
     render: (row) =>
       renderTableActions([
+        {
+          label: row.id === selectedConfigId.value ? '当前使用' : '设为默认',
+          type: row.id === selectedConfigId.value ? 'success' : 'primary',
+          disabled: row.id === selectedConfigId.value,
+          onClick: () => setSelected(row),
+        },
         { label: '测试', type: 'info', onClick: () => handleClickTestisApiConnected(row) },
         { label: '编辑', onClick: () => openEdit(row) },
         {
@@ -239,6 +293,24 @@ const columns: DataTableColumns<(typeof formatedCfgs.value)[number]> = [
     </div>
 
     <div class="page-content">
+      <!-- 当前选中配置提示 -->
+      <div v-if="selectedConfig" class="selected-banner">
+        <NIcon :component="CheckmarkCircle" :size="18" />
+        <span class="selected-text">
+          当前使用：<strong>{{ selectedConfig.name }}</strong>
+          （{{ selectedConfig.model }} · {{ selectedConfig.base_url }}）
+        </span>
+        <n-button
+          size="small"
+          type="success"
+          secondary
+          class="banner-test-btn"
+          @click="handleClickTestisApiConnected(selectedConfig)"
+        >
+          测试连接
+        </n-button>
+      </div>
+
       <!-- 工具栏 -->
       <div class="toolbar">
         <n-input
@@ -333,6 +405,28 @@ const columns: DataTableColumns<(typeof formatedCfgs.value)[number]> = [
 
       .search-input {
         max-width: 360px;
+      }
+    }
+
+    .selected-banner {
+      flex: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 16px;
+      margin-bottom: 16px;
+      border-radius: 8px;
+      background: rgba(24, 160, 88, 0.08);
+      border: 1px solid rgba(24, 160, 88, 0.3);
+
+      .selected-text {
+        flex: 1;
+        font-size: 13px;
+
+        strong {
+          font-size: 14px;
+        }
       }
     }
 
