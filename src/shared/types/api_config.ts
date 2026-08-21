@@ -1,6 +1,7 @@
 /**
  * api配置项
  */
+import type { ApiKeyDTO } from "./api_key"
 export interface ApiConfigDTO {
   /**
    * 配置项id
@@ -17,7 +18,7 @@ export interface ApiConfigDTO {
   /**
    * 关联的密钥id
    */
-  key_id: number
+  api_key: ApiKeyDTO
   /**
    * 模型名称
    */

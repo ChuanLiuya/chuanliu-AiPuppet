@@ -2,8 +2,7 @@
  * api密钥表
  */
 import { ApiKeyDTO } from '@shared/types/api_key'
-import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm'
-import { ApiConfigEntity } from './api_config'
+import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm'
 
 @Entity('api_key')
 export class ApiKeyEntity implements ApiKeyDTO {
@@ -27,9 +26,4 @@ export class ApiKeyEntity implements ApiKeyDTO {
    */
   @CreateDateColumn()
   created_at!: Date
-  /**
-   * 关联的 api 配置项列表（一对多）
-   */
-  @OneToMany(() => ApiConfigEntity, (apiConfig) => apiConfig.api_key)
-  api_configs!: ApiConfigEntity[]
 }
