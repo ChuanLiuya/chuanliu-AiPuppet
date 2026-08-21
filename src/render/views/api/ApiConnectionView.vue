@@ -13,9 +13,7 @@ const message = useMessage()
 const dialog = useDialog()
 const router = useRouter()
 
-// ═════════════════════════════════════════════════════
-// 状态
-// ═════════════════════════════════════════════════════
+/** =============================================== 状态 ====================================================== */
 
 /** 配置项列表 */
 const configs = ref<ApiConfigDTO[]>([])
@@ -24,11 +22,9 @@ const configs = ref<ApiConfigDTO[]>([])
 const FormatedCfgs = computed(() =>
   configs.value.map((c) => ({
     ...c,
-    /** 格式化后的创建时间 */
     created_at_text: formatTime(c.created_at),
-    /** 密钥展示文本（名称 + 掩码密钥），直接从 relation 的 api_key 取 */
     api_key_text: (() => {
-      if (!c.api_key) return '-'
+      if (!c.api_key) return '未配置'
       const masked = maskKey(c.api_key.key)
       return masked ? `${c.api_key.name}(${masked})` : c.api_key.name
     })(),
@@ -54,9 +50,7 @@ const filteredConfigs = computed(() => {
 /** 当前选中的配置项数量（用于按钮文案与禁用态） */
 const checkedCount = computed(() => checkedRowKeys.value.length)
 
-// ═════════════════════════════════════════════════════
-// 函数
-// ═════════════════════════════════════════════════════
+/** =============================================== 函数 ====================================================== */
 
 /** 加载全部配置项 */
 async function loadConfigs() {
@@ -151,16 +145,12 @@ function handleCheckedChange(rowKeys: DataTableRowKey[]) {
 }
 
 
-// ═════════════════════════════════════════════════════
-// 生命周期
-// ═════════════════════════════════════════════════════
+/** ==================== 生命周期 ================ */
 
 /** 页面挂载时加载配置列表 */
 onMounted(loadConfigs)
 
-// ═════════════════════════════════════════════════════
-// 表格列定义
-// ═════════════════════════════════════════════════════
+/** =================== 表格列 ======================== */
 
 const columns: DataTableColumns<(typeof FormatedCfgs.value)[number]> = [
   {
