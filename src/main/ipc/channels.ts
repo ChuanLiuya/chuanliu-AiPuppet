@@ -27,6 +27,8 @@ export const IpcChannels = {
     remove: 'api:apiConfig:remove',
     /** 获取模型列表 */
     findModels: 'api:apiConfig:findModels',
+    /** 测试连接是否正常 */
+    testConnection: 'api:apiConfig:testConnection',
   },
   apiKey: {
     /** 查找所有密钥 */

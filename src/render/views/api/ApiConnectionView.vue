@@ -13,13 +13,18 @@ const message = useMessage()
 const dialog = useDialog()
 const router = useRouter()
 
+type FormatedCfg = ApiConfigDTO & {
+  created_at_text: string
+  api_key_text: string
+}
+
 /** =============================================== 状态 ====================================================== */
 
 /** 配置项列表 */
 const configs = ref<ApiConfigDTO[]>([])
 
 /** 格式化后的配置项列表（时间格式化、密钥掩码展示） */
-const FormatedCfgs = computed(() =>
+const formatedCfgs = computed<FormatedCfg[]>(() =>
   configs.value.map((c) => ({
     ...c,
     created_at_text: formatTime(c.created_at),
@@ -41,8 +46,8 @@ const checkedRowKeys = ref<DataTableRowKey[]>([])
 /** 按名称 / 地址 / 模型 关键字过滤后的列表 */
 const filteredConfigs = computed(() => {
   const kw = searchKeyword.value.trim().toLowerCase()
-  if (!kw) return FormatedCfgs.value
-  return FormatedCfgs.value.filter((c) =>
+  if (!kw) return formatedCfgs.value
+  return formatedCfgs.value.filter((c) =>
     [c.name, c.base_url, c.model].some((v) => v?.toLowerCase().includes(kw)),
   )
 })
@@ -107,7 +112,7 @@ async function batchRemove() {
   if (!ids.length) return
 
   // 取出选中行对应的名称，用于弹窗展示
-  const names = FormatedCfgs.value.filter((c) => ids.includes(c.id)).map((c) => c.name)
+  const names = formatedCfgs.value.filter((c) => ids.includes(c.id)).map((c) => c.name)
 
   dialog.warning({
     title: '批量删除',
@@ -144,6 +149,23 @@ function handleCheckedChange(rowKeys: DataTableRowKey[]) {
   checkedRowKeys.value = rowKeys
 }
 
+/** 测试单个配置项的连接是否正常 */
+async function handleClickTestisApiConnected(row: FormatedCfg) {
+  const msg = message.loading('正在测试连接…', { duration: 0 })
+  try {
+    const res = await window.electronAPI.apiConfig.testConnection(row.id)
+    debugLog('apiConfig.testConnection', res)
+    msg.destroy()
+    if (res.success) {
+      message.success(res.message)
+    } else {
+      message.error(`「${row.name}」连接失败：${res.message}`)
+    }
+  } catch (err) {
+    msg.destroy()
+    message.error(`测试连接失败：${err}`)
+  }
+}
 
 /** ==================== 生命周期 ================ */
 
@@ -152,11 +174,19 @@ onMounted(loadConfigs)
 
 /** =================== 表格列 ======================== */
 
-const columns: DataTableColumns<(typeof FormatedCfgs.value)[number]> = [
+const columns: DataTableColumns<(typeof formatedCfgs.value)[number]> = [
   {
-    type: 'selection',fixed:'left'
+    type: 'selection',
+    fixed: 'left',
   },
-  { title: '名称', key: 'name', minWidth: 100, ellipsis: { tooltip: true }, resizable: true,fixed: 'left' },
+  {
+    title: '名称',
+    key: 'name',
+    minWidth: 100,
+    ellipsis: { tooltip: true },
+    resizable: true,
+    fixed: 'left',
+  },
   {
     title: 'API 地址',
     key: 'base_url',
@@ -186,7 +216,7 @@ const columns: DataTableColumns<(typeof FormatedCfgs.value)[number]> = [
     width: 200,
     render: (row) =>
       renderTableActions([
-        { label: '测试', type: 'info' },
+        { label: '测试', type: 'info', onClick: () => handleClickTestisApiConnected(row) },
         { label: '编辑', onClick: () => openEdit(row) },
         {
           label: '删除',

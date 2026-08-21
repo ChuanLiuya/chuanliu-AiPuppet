@@ -77,6 +77,9 @@ export class ApiConfigController {
     ipcMain.handle(IpcChannels.apiConfig.findModels, (_e, cfg: findModelsParams) =>
       this.findModels(cfg),
     )
+    ipcMain.handle(IpcChannels.apiConfig.testConnection, (_e, id: number) =>
+      this.testConnection(id),
+    )
   }
 
   /** 查找所有配置项（含关联密钥） */
@@ -205,6 +208,42 @@ export class ApiConfigController {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       return error(`获取模型列表失败：${msg}`)
+    }
+  }
+  /**
+   * 测试连接是否正常
+   *
+   * 使用关联密钥向 DeepSeek 兼容的 chat 接口发送一条 "hello" 消息，
+   * 若正常返回则连接测试通过。
+   * @param id 配置项id
+   */
+  async testConnection(id: number): Promise<ApiResponse> {
+    try {
+      const cfg = await this.repo.findOne({ where: { id }, relations: { api_key: true } })
+      if (!cfg) return error(`未找到 id 为 ${id} 的配置项`, false)
+      if (!cfg.api_key) return error(`配置项 ${id} 未关联密钥`, false)
+      // DeepSeek 兼容格式：Bearer 认证 + /v1/chat/completions
+      const url = `${cfg.base_url}/v1/chat/completions`
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${cfg.api_key.key}`,
+      }
+      const body = {
+        model: cfg.model,
+        max_tokens: 16,
+        messages: [{ role: 'user', content: 'hello' }],
+      }
+
+      const res = await axios({ method: 'post', url, headers, data: body, timeout: 15000 })
+
+      // 简单校验响应是否正常，返回响应体供前端展示
+      if (res.status >= 200 && res.status < 300) {
+        return success(res.data, `「${cfg.name}」已成功连接`)
+      }
+      return error(`连接测试失败：HTTP ${res.status}`, false)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      return error(`连接测试失败：${msg}`, false)
     }
   }
 }

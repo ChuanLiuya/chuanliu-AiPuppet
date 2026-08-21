@@ -89,6 +89,17 @@ export const apiConfigApi = {
   findModels: (data: findModelsParams): Promise<ApiResponse<FindModelsResult>> =>
     ipcRenderer.invoke(IpcChannels.apiConfig.findModels, data),
 
+  /**
+   * 测试连接是否正常
+   *
+   * 通道：api:apiConfig:testConnection
+   *
+   * @param id 配置项的 id
+   * @returns 统一响应结构，result 为是否连接成功
+   */
+  testConnection: (id: number): Promise<ApiResponse> =>
+    ipcRenderer.invoke(IpcChannels.apiConfig.testConnection, id),
+
 }
 
 /** apiConfigApi 的类型，供 `env.d.ts` 声明 `window.electronAPI.apiConfig` 使用 */
