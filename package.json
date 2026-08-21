@@ -1,5 +1,5 @@
 {
-  "name": "electron-vue3-starter",
+  "name": "chuanliu-AiPuppet",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -8,6 +8,7 @@
   "author": "chuan_liu_ya",
   "license": "GPL-3.0-only",
   "scripts": {
+    "postinstall": "electron-rebuild -f -w better-sqlite3",
     "dev": "vite",
     "build": "vite build && electron-builder",
     "preview": "vite preview",
@@ -15,9 +16,11 @@
     "lint": "run-s \"lint:*\"",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
-    "format": "prettier --write --experimental-cli src/"
+    "format": "prettier --write --experimental-cli src/render/"
   },
   "dependencies": {
+    "@vicons/ionicons5": "^0.13.0",
+    "axios": "^1.19.0",
     "better-sqlite3": "^12.11.1",
     "naive-ui": "^2.45.1",
     "reflect-metadata": "^0.2.2",
@@ -25,6 +28,7 @@
     "vfonts": "^0.0.3"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.2.0",
     "@tsconfig/node24": "^24.0.4",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^24.13.3",
