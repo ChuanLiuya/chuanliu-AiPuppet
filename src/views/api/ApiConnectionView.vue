@@ -132,20 +132,32 @@ function maskKey(key: string): string {
 }
 
 const columns: DataTableColumns<ApiConfigDTO> = [
-  { title: '名称', key: 'name', minWidth: 140 },
-  { title: 'API 地址', key: 'base_url', minWidth: 220, ellipsis: { tooltip: true } },
-  { title: '模型', key: 'model', minWidth: 110 },
+  {
+    type: 'selection',
+  },
+  { title: '名称', key: 'name', minWidth: 100, ellipsis: { tooltip: true }, resizable: true },
+  {
+    title: 'API 地址',
+    key: 'base_url',
+    minWidth: 100,
+    ellipsis: { tooltip: true },
+    resizable: true,
+  },
+  { title: '模型', key: 'model', minWidth: 80, resizable: true },
   {
     title: 'API Key',
     key: 'api_key',
-    width: 150,
+    minWidth: 50,
+    resizable: true,
     render: (row) =>
       h(NTag, { size: 'small', bordered: false }, { default: () => maskKey(row.api_key) }),
   },
   {
     title: '创建时间',
     key: 'created_at',
-    width: 150,
+    minWidth: 80,
+    ellipsis: { tooltip: true },
+    resizable: true,
     render: (row) => formatTime(row.created_at),
   },
   {
@@ -168,15 +180,15 @@ const columns: DataTableColumns<ApiConfigDTO> = [
 </script>
 
 <template>
-  <n-layout class="page">
-    <n-layout-header bordered class="page-header">
+  <div class="page">
+    <div class="page-header">
       <div>
         <n-h2 class="page-title">API 连接</n-h2>
         <p class="page-desc">配置模型接口并测试连通性，连接成功即可开始角色扮演对话</p>
       </div>
-    </n-layout-header>
+    </div>
 
-    <n-layout-content class="page-content">
+    <div class="page-content">
       <!-- 工具栏：搜索 + 新增 -->
       <div class="toolbar">
         <n-input
@@ -198,18 +210,20 @@ const columns: DataTableColumns<ApiConfigDTO> = [
       </div>
 
       <!-- 配置列表 -->
-      <div class="table-card theme-bg-card theme-border theme-radius">
+      <div class="table-card">
         <n-data-table
           :columns="columns"
           :data="filteredConfigs"
           :loading="isLoading"
           :row-key="(row) => row.id"
           :scroll-x="1000"
-          :pagination="{ pageSize: 8 }"
+          :pagination="false"
+          flex-height
+          class="table"
         />
       </div>
-    </n-layout-content>
-  </n-layout>
+    </div>
+  </div>
 
   <!-- 新增 / 编辑弹窗 -->
   <n-modal
@@ -253,10 +267,11 @@ const columns: DataTableColumns<ApiConfigDTO> = [
   height: 100%;
   display: flex;
   flex-direction: column;
+  padding: 20px;
+  overflow: hidden;
 
   .page-header {
-    display: flex;
-    align-items: center;
+    flex: 0;
     padding: 0 24px;
 
     .page-title {
@@ -265,7 +280,7 @@ const columns: DataTableColumns<ApiConfigDTO> = [
     }
 
     .page-desc {
-      margin: 2px 0 0;
+      margin: 2px 0 5px 0;
       font-size: 13px;
       color: #999;
     }
@@ -273,10 +288,14 @@ const columns: DataTableColumns<ApiConfigDTO> = [
 
   .page-content {
     flex: 1;
-    overflow: auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
     padding: 20px 24px;
+    overflow: hidden;
 
     .toolbar {
+      flex: 0;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -289,7 +308,14 @@ const columns: DataTableColumns<ApiConfigDTO> = [
     }
 
     .table-card {
+      flex: 1;
+      min-height: 0;
       padding: 8px;
+      overflow: hidden;
+
+      .table {
+        height: 100%;
+      }
     }
   }
 }

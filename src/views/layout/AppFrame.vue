@@ -18,7 +18,10 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown))
 <template>
   <n-layout class="app-frame" has-sider>
     <AppSidebar v-if="!uiStore.immersive" />
-    <n-layout-content>
+    <n-layout-content
+      :native-scrollbar="false"
+      content-style="height: 100%; display: flex; flex-direction: column; overflow: hidden;"
+    >
       <RouterView />
     </n-layout-content>
   </n-layout>
