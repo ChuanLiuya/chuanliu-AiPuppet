@@ -2,6 +2,7 @@
 import { CatController } from '@electron/ipc/apis/cat'
 import { ApiConfigController } from '@electron/ipc/apis/apiConfig'
 import { ApiKeyController } from '@electron/ipc/apis/apiKey'
+import { AppSettingController } from '@electron/ipc/apis/appSetting'
 
 export function registerIpc() {
 
@@ -13,4 +14,7 @@ export function registerIpc() {
 
   // API 密钥模块
   new ApiKeyController().register()
+
+  // 应用设置模块
+  new AppSettingController().register()
 }

@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron'
 import { dataSource } from '@electron/database'
 import { CatEntity } from '@electron/database/entities/cat'
-import { IpcChannels } from '@electron/ipc/channels'
+import { IpcChannels } from '@shared/constants/ipc_channels'
 import type { CatDTO, CatCreateInput, CatUpdateInput } from '@shared/types/cat'
 import { success, error, type ApiResponse } from '@shared/types/api-response'
 

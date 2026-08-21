@@ -6,6 +6,7 @@
 import type { CatApi } from './src/main/preload/apis/cat'
 import type { ApiConfigApi } from './src/main/preload/apis/apiConfig'
 import type { ApiKeyApi } from './src/main/preload/apis/apiKey'
+import type { AppSettingApi } from './src/main/preload/apis/appSetting'
 
 declare global {
   interface Window {
@@ -14,6 +15,7 @@ declare global {
       cat: CatApi
       apiConfig: ApiConfigApi
       apiKey: ApiKeyApi
+      appSetting: AppSettingApi
     }
     /** 系统环境信息（preload 直接读取，不经过 IPC） */
     systemInfo: {

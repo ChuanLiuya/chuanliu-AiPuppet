@@ -12,7 +12,7 @@
  *   `env.d.ts` 用它声明 `window.electronAPI.apiConfig`——改这里的方法签名，前端类型自动同步
  */
 import { ipcRenderer } from 'electron'
-import { IpcChannels } from '@electron/ipc/channels'
+import { IpcChannels } from '@shared/constants/ipc_channels'
 import type {
   ApiConfigDTO,
   CreateApiConfigParams,

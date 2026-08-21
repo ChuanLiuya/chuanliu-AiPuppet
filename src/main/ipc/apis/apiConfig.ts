@@ -2,7 +2,7 @@ import { ipcMain } from 'electron'
 import { dataSource } from '@electron/database'
 import { ApiConfigEntity } from '@electron/database/entities/api_config'
 import { ApiKeyEntity } from '@electron/database/entities/api_key'
-import { IpcChannels } from '@electron/ipc/channels'
+import { IpcChannels } from '@shared/constants/ipc_channels'
 import type {
   ApiConfigDTO,
   CreateApiConfigParams,

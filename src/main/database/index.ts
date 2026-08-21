@@ -5,10 +5,11 @@ import { env } from '@electron/config/env'
 import { CatEntity } from '@electron/database/entities/cat'
 import { ApiConfigEntity } from '@electron/database/entities/api_config'
 import { ApiKeyEntity } from '@electron/database/entities/api_key'
+import { AppSettingEntity } from '@electron/database/entities/app_setting'
 export const dataSource = new DataSource({
   type: 'better-sqlite3',
   database: env.dbPath,
-  entities: [CatEntity, ApiKeyEntity, ApiConfigEntity,],
+  entities: [CatEntity, ApiKeyEntity, ApiConfigEntity, AppSettingEntity],
   synchronize: true,
 })
 
