@@ -18,6 +18,8 @@ declare global {
     /** 系统环境信息（preload 直接读取，不经过 IPC） */
     systemInfo: {
       platform: string
+      /** 是否输出调试信息 */
+      debug: boolean
       versions: {
         electron: string
         chrome: string

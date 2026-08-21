@@ -7,6 +7,7 @@ import { AddOutline, KeyOutline, SearchOutline, TrashOutline } from '@vicons/ion
 import type { ApiConfigDTO } from '@shared/types/api_config'
 import type { ApiKeyDTO } from '@shared/types/api_key'
 import { renderTableActions } from '@/utils/tableActions'
+import { debugLog } from '@/composables/useDebugLog'
 
 const message = useMessage()
 const dialog = useDialog()
@@ -51,6 +52,8 @@ async function loadConfigs() {
       window.electronAPI.apiConfig.findAll(),
       window.electronAPI.apiKey.findAll(),
     ])
+    debugLog('apiConfig.findAll', cfgRes)
+    debugLog('apiKey.findAll', keyRes)
     if (!cfgRes.success) {
       message.error(cfgRes.message)
       return
@@ -87,6 +90,7 @@ function openEdit(row: ApiConfigDTO) {
 async function remove(row: ApiConfigDTO) {
   try {
     const res = await window.electronAPI.apiConfig.remove(row.id)
+    debugLog('apiConfig.remove', res)
     if (!res.success) {
       message.error(res.message)
       return
@@ -116,6 +120,7 @@ async function batchRemove() {
       for (const id of ids) {
         try {
           const res = await window.electronAPI.apiConfig.remove(id as number)
+          debugLog('apiConfig.remove', res)
           if (!res.success) {
             message.error(res.message)
             failed++
@@ -157,7 +162,8 @@ function maskKey(key: string): string {
 }
 
 /** 通过 key_id 获取密钥展示文本（名称 + 掩码密钥） */
-function getKeyLabel(keyId: number): string {
+function getKeyLabel(keyId: number | undefined): string {
+  if (keyId == null) return '-'
   const key = apiKeys.value.find((k) => k.id === keyId)
   if (!key) return '-'
   const masked = maskKey(key.key)
@@ -190,11 +196,11 @@ const columns: DataTableColumns<ApiConfigDTO> = [
   { title: '模型', key: 'model', minWidth: 80, resizable: true },
   {
     title: 'API 密钥',
-    key: 'key_id',
+    key: 'api_key',
     minWidth: 50,
     resizable: true,
     render: (row) =>
-      h(NTag, { size: 'small', bordered: false }, { default: () => getKeyLabel(row.key_id) }),
+      h(NTag, { size: 'small', bordered: false }, { default: () => getKeyLabel(row.api_key?.id) }),
   },
   {
     title: '创建时间',

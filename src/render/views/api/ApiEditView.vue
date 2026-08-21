@@ -7,6 +7,7 @@
 import { NIcon } from 'naive-ui'
 import { ArrowBackOutline, DownloadOutline } from '@vicons/ionicons5'
 import type { ApiKeyDTO } from '@shared/types/api_key'
+import { debugLog } from '@/composables/useDebugLog'
 
 const route = useRoute()
 const router = useRouter()
@@ -64,6 +65,7 @@ function goBack() {
 async function loadApiKeys() {
   try {
     const res = await window.electronAPI.apiKey.findAll()
+    debugLog('apiKey.findAll', res)
     if (!res.success) {
       message.error(res.message)
       return
@@ -81,6 +83,7 @@ async function loadConfig() {
   editingId.value = id
   try {
     const res = await window.electronAPI.apiConfig.findOneById(id)
+    debugLog('apiConfig.findOneById', res)
     if (!res.success) {
       message.error(res.message)
       return
@@ -90,7 +93,7 @@ async function loadConfig() {
       Object.assign(form, {
         name: config.name,
         base_url: config.base_url || null,
-        key_id: config.key_id,
+        key_id: config.api_key?.id ?? null,
         model: config.model || null,
       })
     }
@@ -137,9 +140,10 @@ async function save() {
       const res = await window.electronAPI.apiConfig.create({
         name,
         base_url,
-        key_id,
+        api_key: { id: key_id },
         model,
       })
+      debugLog('apiConfig.create', res)
       if (!res.success) {
         message.error(res.message)
         return
@@ -149,9 +153,10 @@ async function save() {
       const res = await window.electronAPI.apiConfig.update(editingId.value, {
         name,
         base_url,
-        key_id,
+        api_key: { id: key_id },
         model,
       })
+      debugLog('apiConfig.update', res)
       if (!res.success) {
         message.error(res.message)
         return

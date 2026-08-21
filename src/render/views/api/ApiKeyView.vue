@@ -16,6 +16,7 @@ import {
 import { AddOutline, ArrowBackOutline, SearchOutline, TrashOutline } from '@vicons/ionicons5'
 import type { ApiKeyDTO } from '@shared/types/api_key'
 import { renderTableActions } from '@/utils/tableActions'
+import { debugLog } from '@/composables/useDebugLog'
 
 const message = useMessage()
 const dialog = useDialog()
@@ -90,6 +91,7 @@ async function loadKeys() {
   isLoading.value = true
   try {
     const res = await window.electronAPI.apiKey.findAll()
+    debugLog('apiKey.findAll', res)
     if (!res.success) {
       message.error(res.message)
       return
@@ -133,6 +135,7 @@ async function save() {
         name: form.name,
         key: form.key,
       })
+      debugLog('apiKey.create', res)
       if (!res.success) {
         message.error(res.message)
         return
@@ -143,6 +146,7 @@ async function save() {
         name: form.name,
         key: form.key,
       })
+      debugLog('apiKey.update', res)
       if (!res.success) {
         message.error(res.message)
         return
@@ -162,6 +166,7 @@ async function save() {
 async function remove(row: ApiKeyDTO) {
   try {
     const res = await window.electronAPI.apiKey.remove(row.id)
+    debugLog('apiKey.remove', res)
     if (!res.success) {
       message.error(res.message)
       return
@@ -190,6 +195,7 @@ async function batchRemove() {
       for (const id of ids) {
         try {
           const res = await window.electronAPI.apiKey.remove(id as number)
+          debugLog('apiKey.remove', res)
           if (!res.success) {
             message.error(res.message)
             failed++
