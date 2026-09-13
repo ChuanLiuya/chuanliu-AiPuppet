@@ -2,6 +2,8 @@
 
 > 本文档说明在项目中新增一个后端函数（如增删改查、调用外部 API 等）时，需要修改哪些文件、按什么顺序改。
 >
+> 想先了解当前整体交互链路，见 `docs/ipc-architecture.md`。
+>
 > 项目的 IPC 交互链路为：
 >
 > ```mermaid
@@ -20,7 +22,7 @@
 | --- | --- | --- | --- |
 | 1 | `src/shared/types/xxx.ts` | 定义数据契约（DTO、参数类型、返回类型） | ✅ |
 | 2 | `src/main/database/entities/xxx.ts` | 定义数据库实体（仅涉及数据库操作时） | 视情况 |
-| 3 | `src/main/ipc/channels.ts` | 定义 IPC 通道名 | ✅ |
+| 3 | `src/shared/constants/ipc_channels.ts` | 定义 IPC 通道名（前后端共用） | ✅ |
 | 4 | `src/main/ipc/apis/xxx.ts` | 主进程 Controller，实现业务逻辑 | ✅ |
 | 5 | `src/main/ipc/index.ts` | 注册 Controller（新增模块时才需要） | 新模块才改 |
 | 6 | `src/main/preload/apis/xxx.ts` | Preload 桥接层，封装 `ipcRenderer.invoke` | ✅ |
@@ -75,7 +77,7 @@ export class ApiConfigEntity implements ApiConfigDTO {
 }
 ```
 
-### 3. 定义 IPC 通道名 — `src/main/ipc/channels.ts`
+### 3. 定义 IPC 通道名 — `src/shared/constants/ipc_channels.ts`
 
 在 `IpcChannels` 对象中，对应模块下新增一个通道名。命名规范：`api:<模块>:<动作>`。
 
@@ -171,7 +173,7 @@ async function handleTestConnection(row: FormatedCfg) {
 | 步骤 | 文件 | 改动内容 |
 | --- | --- | --- |
 | 1 | `src/shared/types/api_config.ts` | 如需新类型则定义（本次复用已有 `ApiResponse`） |
-| 2 | `src/main/ipc/channels.ts` | `apiConfig` 下新增 `testConnection: 'api:apiConfig:testConnection'` |
+| 2 | `src/shared/constants/ipc_channels.ts` | `apiConfig` 下新增 `testConnection: 'api:apiConfig:testConnection'` |
 | 3 | `src/main/ipc/apis/apiConfig.ts` | `register()` 中注册 handler + 实现 `testConnection()` 方法 |
 | 4 | `src/main/preload/apis/apiConfig.ts` | 新增 `testConnection(id)` 方法 |
 | 5 | `src/render/views/api/ApiConnectionView.vue` | 调用 `window.electronAPI.apiConfig.testConnection(id)` |
