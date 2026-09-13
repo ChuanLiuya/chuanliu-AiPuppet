@@ -35,17 +35,15 @@ export interface ChatSessionDTO {
   character_name: string
   /** 角色头像（emoji 或图片标识） */
   avatar: string
-  /** 该会话使用的 API 配置 id；为 null 表示回退到全局选中的配置 */
-  api_config_id: number | null
   /** 创建时间 */
   created_at: Date
   /** 最后更新时间（有新消息时刷新，列表按此倒序排列） */
   updated_at: Date
 }
 
-/** 创建一个会话的参数（title / avatar / api_config_id 可省略） */
+/** 创建一个会话的参数（title / avatar 可省略） */
 export type ChatSessionCreateInput = Pick<ChatSessionDTO, 'character_name'> &
-  Partial<Pick<ChatSessionDTO, 'title' | 'avatar' | 'api_config_id'>>
+  Partial<Pick<ChatSessionDTO, 'title' | 'avatar'>>
 
 /** 更新一个会话的可选字段 */
 export type ChatSessionUpdateInput = Partial<ChatSessionCreateInput>
@@ -83,20 +81,16 @@ export interface ChatMessageDTO {
   mes: string
   /** 杂项元数据（生成参数、推理过程、工具调用等，预留） */
   extra: Record<string, unknown> | null
-  /** 同一位置的多条候选回复（重新生成用，预留） */
-  swipes: string[] | null
-  /** 当前选中的候选下标 */
-  swipe_id: number
   /** 创建时间 */
   created_at: Date
 }
 
-/** 创建一条消息的参数（is_system / extra / swipes / swipe_id 可省略） */
+/** 创建一条消息的参数（is_system / extra 可省略） */
 export type ChatMessageCreateInput = Pick<
   ChatMessageDTO,
   'session_id' | 'name' | 'is_user' | 'mes'
 > &
-  Partial<Pick<ChatMessageDTO, 'is_system' | 'extra' | 'swipes' | 'swipe_id'>>
+  Partial<Pick<ChatMessageDTO, 'is_system' | 'extra'>>
 
 /** 更新一条消息的可选字段（不允许改所属会话与创建时间） */
 export type ChatMessageUpdateInput = Partial<

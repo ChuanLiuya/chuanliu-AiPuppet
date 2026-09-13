@@ -31,15 +31,6 @@ export class ChatSessionEntity implements ChatSessionDTO {
   @Column({ default: '' })
   avatar!: string
 
-  /**
-   * 该会话使用的 API 配置 id；为 null 表示回退到全局选中的配置。
-   *
-   * 必须显式写 type 且 nullable：这是可空整数列，TypeORM 无法从
-   * `number | null` 联合类型推断列类型（union 会被反映成 Object）。
-   */
-  @Column({ type: 'integer', nullable: true })
-  api_config_id!: number | null
-
   /** 创建时间 */
   @CreateDateColumn()
   created_at!: Date

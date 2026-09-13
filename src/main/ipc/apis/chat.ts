@@ -63,8 +63,8 @@ export class ChatController {
       const session = await this.sessionRepo.findOneBy({ id: params.session_id })
       if (!session) return error('未找到会话')
 
-      // 会话指定了配置就用它，否则回退到全局选中的配置
-      const configId = session.api_config_id ?? (await this.getSelectedConfigId())
+      // 统一使用全局选中的 API 配置（在 API 连接页面设置）
+      const configId = await this.getSelectedConfigId()
       if (!configId) return error('尚未选择 API 配置，请先在 API 连接页面选择')
 
       const cfg = await this.repo.findOne({
