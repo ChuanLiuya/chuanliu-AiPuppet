@@ -12,7 +12,7 @@ import type {
 } from '@shared/types/api_config'
 import { success, error, type ApiResponse } from '@shared/types/api-response'
 import { ApiProtocol, type ApiProtocolType } from '@shared/constants/api_protocol'
-import { sendChat, trimSlash } from './providerAdapter'
+import { sendOpenAI, trimSlash } from './providerAdapter'
 import axios from 'axios'
 
 
@@ -213,9 +213,8 @@ export class ApiConfigController {
   /**
    * 测试连接是否正常
    *
-   * 按配置的 protocol 发送一条极短的 "hello" 消息，能正常拿到回复即视为连通。
-   * 复用 providerAdapter，因此 Claude / Gemini 配置同样可测，不会出现
-   * 「对话能通但测试连接失败」的不一致。
+   * 发送一条极短的 "hello" 消息，能正常拿到回复即视为连通。
+   * 复用 providerAdapter，与对话走同一套请求逻辑，避免两者行为不一致。
    * @param id 配置项id
    */
   async testConnection(id: number): Promise<ApiResponse> {
@@ -224,8 +223,7 @@ export class ApiConfigController {
       if (!cfg) return error(`未找到 id 为 ${id} 的配置项`, false)
       if (!cfg.api_key) return error(`配置项 ${id} 未关联密钥`, false)
 
-      const reply = await sendChat(cfg.protocol, cfg, {
-        messages: [{ role: 'user', content: 'hello' }],
+      const reply = await sendOpenAI(cfg, [{ role: 'user', content: 'hello' }], {
         max_tokens: 16,
         timeout: 15000,
       })

@@ -10,7 +10,7 @@ import { ApiConfigEntity } from '@electron/database/entities/api_config'
 import { IpcChannels } from '@shared/constants/ipc_channels'
 import type { ChatSendParams, ChatReplyResult } from '@shared/types/chat'
 import { success, error, type ApiResponse } from '@shared/types/api-response'
-import { sendChat } from './providerAdapter'
+import { sendOpenAI } from './providerAdapter'
 
 export class ChatController {
   /** 懒获取 api_config 表的仓库 */
@@ -39,8 +39,7 @@ export class ChatController {
       if (!cfg) return error('未找到 API 配置')
       if (!cfg.api_key) return error('该配置未关联密钥')
 
-      const reply = await sendChat(cfg.protocol, cfg, {
-        messages: params.messages,
+      const reply = await sendOpenAI(cfg, params.messages, {
         max_tokens: params.max_tokens,
       })
 
