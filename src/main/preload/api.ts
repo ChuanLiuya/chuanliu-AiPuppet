@@ -4,6 +4,7 @@ import { apiConfigApi } from '@electron/preload/apis/apiConfig'
 import { apiKeyApi } from '@electron/preload/apis/apiKey'
 import { appSettingApi } from '@electron/preload/apis/appSetting'
 import { chatApi } from '@electron/preload/apis/chat'
+import { debugApi } from '@electron/preload/apis/debug'
 
 export const api = {
   cat: catApi,
@@ -11,4 +12,5 @@ export const api = {
   apiKey: apiKeyApi,
   appSetting: appSettingApi,
   chat: chatApi,
+  debug: debugApi,
 }

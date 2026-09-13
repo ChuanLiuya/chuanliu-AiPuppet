@@ -4,6 +4,8 @@
 >
 > 想先了解当前整体交互链路，见 `docs/ipc-architecture.md`。
 >
+> 想看主进程主动推送数据（日志、进度）的那条反向链路，见 `docs/ipc-event-push.md`。
+>
 > 项目的 IPC 交互链路为：
 >
 > ```mermaid

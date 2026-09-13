@@ -56,5 +56,9 @@ export const IpcChannels = {
   chat: {
     /** ai对话！ */
     chat: 'api:chat:chat'
-  }
+  },
+  debug: {
+    /** 主进程 → 渲染进程：推送调试日志（推送通道，用 on 订阅而非 invoke） */
+    log: 'api:debug:log',
+  },
 } as const

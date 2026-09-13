@@ -11,6 +11,7 @@
  * 从而保留各自的语义前缀（如「对话失败」「连接测试失败」）。
  */
 import axios from 'axios'
+import { logHttpRequest } from '@electron/ipc/debugLog'
 import type { ApiConfigEntity } from '@electron/database/entities/api_config'
 import type { ChatMessage, ChatReplyResult } from '@shared/types/chat'
 
@@ -42,18 +43,26 @@ export async function sendOpenAI(
   messages: ChatMessage[],
   options: { max_tokens?: number; timeout?: number } = {},
 ): Promise<ChatReplyResult> {
+  // 先把请求组装出来再发送：既方便调试打印，也让「到底发了什么」一目了然
+  const url = `${trimSlash(cfg.base_url)}/v1/chat/completions`
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${cfg.api_key.key}`,
+  }
+  const body = {
+    model: cfg.model,
+    max_tokens: options.max_tokens ?? DEFAULT_MAX_TOKENS,
+    messages,
+  }
+
+  // 打印真实请求（认证头自动掩码），同时进主进程终端与 DevTools 控制台
+  logHttpRequest('chat.sendOpenAI', { url, headers, body })
+
   const res = await axios({
     method: 'post',
-    url: `${trimSlash(cfg.base_url)}/v1/chat/completions`,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${cfg.api_key.key}`,
-    },
-    data: {
-      model: cfg.model,
-      max_tokens: options.max_tokens ?? DEFAULT_MAX_TOKENS,
-      messages,
-    },
+    url,
+    headers,
+    data: body,
     timeout: options.timeout ?? DEFAULT_TIMEOUT,
   })
 
