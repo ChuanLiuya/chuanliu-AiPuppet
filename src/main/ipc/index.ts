@@ -4,6 +4,8 @@ import { ApiConfigController } from '@electron/ipc/apis/apiConfig'
 import { ApiKeyController } from '@electron/ipc/apis/apiKey'
 import { AppSettingController } from '@electron/ipc/apis/appSetting'
 import { ChatController } from './apis/chat'
+import { ChatSessionController } from './apis/chatSession'
+import { ChatMessageController } from './apis/chatMessage'
 
 export function registerIpc() {
 
@@ -21,4 +23,10 @@ export function registerIpc() {
 
   //
   new ChatController().register()
+
+  // 会话（历史记录容器）模块
+  new ChatSessionController().register()
+
+  // 聊天消息（历史记录）模块
+  new ChatMessageController().register()
 }

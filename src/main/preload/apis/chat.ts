@@ -7,20 +7,24 @@
  */
 import { ipcRenderer } from 'electron'
 import { IpcChannels } from '@shared/constants/ipc_channels'
-import type { ChatSendParams, ChatReplyResult } from '@shared/types/chat'
+import type { ChatSendMessageParams, ChatSendMessageResult } from '@shared/types/chat'
 import type { ApiResponse } from '@shared/types/api-response'
 
 export const chatApi = {
   /**
-   * 发送对话
+   * 发送一条消息（自动读写历史记录）
    *
-   * 通道：api:chat:chat
+   * 通道：api:chat:send
    *
-   * @param params 对话参数（含 api_config_id 和消息列表）
-   * @returns 统一响应结构，result 为 AI 回复内容
+   * 主进程会把用户消息落库、拼上该会话的历史一起发给 AI、
+   * 再把 AI 回复落库，因此前端只需要传会话 id 和文本。
+   *
+   * @param params 发送参数（会话 id + 文本 + 可选人设名）
+   * @returns 落库后的用户消息与 AI 回复；AI 失败时 assistant_message 为 null，
+   *          但 user_message 仍已保存
    */
-  chat: (params: ChatSendParams): Promise<ApiResponse<ChatReplyResult>> =>
-    ipcRenderer.invoke(IpcChannels.chat.chat, params),
+  send: (params: ChatSendMessageParams): Promise<ApiResponse<ChatSendMessageResult>> =>
+    ipcRenderer.invoke(IpcChannels.chat.send, params),
 }
 
 /** chatApi 的类型，供 `env.d.ts` 声明 `window.electronAPI.chat` 使用 */

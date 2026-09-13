@@ -13,7 +13,7 @@
 import axios from 'axios'
 import { logHttpError, logHttpRequest, logHttpResponse } from '@electron/ipc/debugLog'
 import type { ApiConfigEntity } from '@electron/database/entities/api_config'
-import type { ChatMessage, ChatReplyResult } from '@shared/types/chat'
+import type { ChatMessage, ChatMessageDTO, ChatReplyResult } from '@shared/types/chat'
 
 /** 默认超时（毫秒） */
 const DEFAULT_TIMEOUT = 60000
@@ -24,6 +24,28 @@ const DEFAULT_MAX_TOKENS = 2048
 /** 去掉 base_url 末尾的斜杠，避免拼出 `//v1/...` */
 export function trimSlash(url: string): string {
   return url.replace(/\/+$/, '')
+}
+
+/**
+ * 把数据库里的历史消息转换成接口需要的 messages
+ *
+ * 这是「内部身份 → API role」的**唯一转换点**，存储层永远保持中立格式：
+ * - `is_system` 的消息是界面提示（旁白/欢迎语等），默认不发送给模型
+ * - 其余消息按 `is_user` 推导：用户 → `user`，角色 → `assistant`
+ *
+ * 将来接入 Claude / Gemini 时，协议差异只需在这里按 `cfg.protocol` 分支处理：
+ * Claude 把 system 提升为顶层参数、Gemini 把 assistant 改叫 model。
+ *
+ * @param rows chat_message 表的记录（按时间升序）
+ * @returns OpenAI 兼容格式的 messages
+ */
+export function toApiMessages(rows: ChatMessageDTO[]): ChatMessage[] {
+  return rows
+    .filter((m) => !m.is_system)
+    .map((m) => ({
+      role: m.is_user ? 'user' : 'assistant',
+      content: m.mes,
+    }))
 }
 
 /**

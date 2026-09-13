@@ -6,10 +6,19 @@ import { CatEntity } from '@electron/database/entities/cat'
 import { ApiConfigEntity } from '@electron/database/entities/api_config'
 import { ApiKeyEntity } from '@electron/database/entities/api_key'
 import { AppSettingEntity } from '@electron/database/entities/app_setting'
+import { ChatSessionEntity } from '@electron/database/entities/chat_session'
+import { ChatMessageEntity } from '@electron/database/entities/chat_message'
 export const dataSource = new DataSource({
   type: 'better-sqlite3',
   database: env.dbPath,
-  entities: [CatEntity, ApiKeyEntity, ApiConfigEntity, AppSettingEntity],
+  entities: [
+    CatEntity,
+    ApiKeyEntity,
+    ApiConfigEntity,
+    AppSettingEntity,
+    ChatSessionEntity,
+    ChatMessageEntity,
+  ],
   synchronize: true,
 })
 

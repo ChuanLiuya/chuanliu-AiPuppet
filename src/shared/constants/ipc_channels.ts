@@ -54,8 +54,36 @@ export const IpcChannels = {
     remove: 'api:appSetting:remove',
   },
   chat: {
-    /** ai对话！ */
-    chat: 'api:chat:chat'
+    /** 发送一条消息（自动读写历史记录） */
+    send: 'api:chat:send',
+  },
+  chatSession: {
+    /** 查找所有会话 */
+    findAll: 'api:chatSession:findAll',
+    /** 查找所有会话（附带最后一条消息摘要，列表页用） */
+    listWithPreview: 'api:chatSession:listWithPreview',
+    /** 通过id查找单个会话 */
+    findOneById: 'api:chatSession:findOneById',
+    /** 新建会话 */
+    create: 'api:chatSession:create',
+    /** 修改会话 */
+    update: 'api:chatSession:update',
+    /** 删除会话（级联删除其下所有消息） */
+    remove: 'api:chatSession:remove',
+  },
+  chatMessage: {
+    /** 查找某个会话下的全部消息 */
+    findAll: 'api:chatMessage:findAll',
+    /** 通过id查找单条消息 */
+    findOneById: 'api:chatMessage:findOneById',
+    /** 新增一条消息 */
+    create: 'api:chatMessage:create',
+    /** 修改一条消息 */
+    update: 'api:chatMessage:update',
+    /** 删除一条消息 */
+    remove: 'api:chatMessage:remove',
+    /** 清空某个会话下的全部消息 */
+    clear: 'api:chatMessage:clear',
   },
   debug: {
     /** 主进程 → 渲染进程：推送调试日志（推送通道，用 on 订阅而非 invoke） */

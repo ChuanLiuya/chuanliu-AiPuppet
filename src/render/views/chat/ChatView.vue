@@ -1,48 +1,112 @@
 <script setup lang="ts">
-// 沉浸模式：全局 UI 状态与图标
+// 具体聊天页：加载会话与历史消息，发送消息（由主进程自动持久化）
+import type { ChatMessageDTO, ChatSessionDTO } from '@shared/types/chat'
 import { useUiStore } from '@/stores/ui'
+import { debugLog } from '@/composables/useDebugLog'
 import { useThemeVars } from 'naive-ui'
-import { ArrowBackOutline, ContractOutline, ExpandOutline } from '@vicons/ionicons5'
+import { ArrowBackOutline, ContractOutline, ExpandOutline, SendOutline } from '@vicons/ionicons5'
 
 const uiStore = useUiStore()
 const router = useRouter()
 const route = useRoute()
 const themeVars = useThemeVars()
+const message = useMessage()
 
-// 占位角色信息：根据路由 id 匹配当前聊天的角色（后续替换为真实数据）
-const roleMap: Record<number, { name: string; avatar: string }> = {
-  1: { name: '苏妲己', avatar: '🦊' },
-  2: { name: '林墨', avatar: '🥷' },
-  3: { name: 'Alice', avatar: '👩‍🚀' },
+/** 会话 id（来自路由参数） */
+const sessionId = computed(() => Number(route.params.id))
+/** 当前会话 */
+const session = ref<ChatSessionDTO | null>(null)
+/** 消息列表 */
+const messages = ref<ChatMessageDTO[]>([])
+/** 输入框文本 */
+const inputText = ref('')
+/** 是否正在加载历史 */
+const loading = ref(false)
+/** 是否正在等待 AI 回复 */
+const isSending = ref(false)
+/** 消息滚动容器 */
+const listRef = ref<HTMLElement | null>(null)
+
+/** 角色名（会话未加载时给个兜底文案） */
+const characterName = computed(() => session.value?.character_name || '角色')
+/** 角色头像 */
+const characterAvatar = computed(() => session.value?.avatar || '🤖')
+
+/** 滚动到消息底部 */
+async function scrollToBottom() {
+  await nextTick()
+  const el = listRef.value
+  if (el) el.scrollTop = el.scrollHeight
 }
 
-const currentRole = computed(
-  () => roleMap[Number(route.params.id)] ?? { name: '未知角色', avatar: '🤖' },
-)
+/** 加载会话信息与历史消息 */
+async function loadChat() {
+  loading.value = true
+  const [sessionRes, messageRes] = await Promise.all([
+    window.electronAPI.chatSession.findOneById(sessionId.value),
+    window.electronAPI.chatMessage.findAll(sessionId.value),
+  ])
+  debugLog('chatSession.findOneById', sessionRes)
+  debugLog('chatMessage.findAll', messageRes)
+  loading.value = false
 
-// 占位消息：仅用于查看界面效果，后续替换为真实数据
-const messages = [
-  { id: 1, role: 'user', content: '你好，能介绍一下你自己吗？' },
-  {
-    id: 2,
-    role: 'assistant',
-    content: '当然可以~ 我是这个世界的角色，很高兴认识你。',
-    time: '12:31',
-  },
-  {
-    id: 3,
-    role: 'assistant',
-    content: '既然你来了，我们就开始今天的对话吧。你想聊些什么呢？',
-    time: '12:31',
-  },
-]
+  if (sessionRes.success && sessionRes.result) session.value = sessionRes.result
+  else message.error(sessionRes.message)
 
-// 气泡颜色跟随主题：用户消息用主题色，助手消息用卡片底色
-function bubbleStyle(role: string) {
-  return role === 'user'
+  if (messageRes.success) messages.value = messageRes.result
+  else message.error(messageRes.message)
+
+  await scrollToBottom()
+}
+
+/** 气泡颜色跟随主题：用户消息用主题色，角色消息用卡片底色 */
+function bubbleStyle(m: ChatMessageDTO) {
+  return m.is_user
     ? { background: themeVars.value.primaryColor, color: '#fff' }
     : { background: themeVars.value.cardColor, color: themeVars.value.textColor1 }
 }
+
+/** 发送消息 */
+async function sendMessage() {
+  const text = inputText.value.trim()
+  if (!text || isSending.value || !session.value) return
+
+  inputText.value = ''
+  isSending.value = true
+  await scrollToBottom()
+
+  const res = await window.electronAPI.chat.send({
+    session_id: session.value.id,
+    content: text,
+  })
+  debugLog('chat.send', res)
+  isSending.value = false
+
+  if (res.result) {
+    // 用户消息在调 AI 前就已落库，失败时也会带回来，所以直接入列
+    messages.value.push(res.result.user_message)
+    if (res.result.assistant_message) messages.value.push(res.result.assistant_message)
+    else message.error(res.message)
+  } else {
+    // 连用户消息都没落库（如未配置 API），把输入还原回输入框
+    message.error(res.message)
+    inputText.value = text
+  }
+
+  await scrollToBottom()
+}
+
+/** Enter 发送 / Shift+Enter 换行 */
+function handleKeydown(e: KeyboardEvent) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault()
+    sendMessage()
+  }
+}
+
+onMounted(loadChat)
+// 只有路由参数变化时组件会被复用，需要重新加载
+watch(sessionId, loadChat)
 </script>
 
 <template>
@@ -55,15 +119,15 @@ function bubbleStyle(role: string) {
             <NIcon :component="ArrowBackOutline" />
           </template>
         </NButton>
-        <span class="chat-avatar">{{ currentRole.avatar }}</span>
+        <span class="chat-avatar">{{ characterAvatar }}</span>
         <div class="chat-title">
-          <div class="chat-name">{{ currentRole.name }}</div>
-          <div class="chat-sub">AI 角色扮演 · 在线</div>
+          <div class="chat-name">{{ characterName }}</div>
+          <div class="chat-sub" :style="{ color: themeVars.textColor3 }">
+            AI 角色扮演 · {{ messages.length }} 条消息
+          </div>
         </div>
       </n-space>
       <n-space align="center" :size="8">
-        <NButton size="small" secondary>角色信息</NButton>
-        <NButton size="small" secondary>参数</NButton>
         <NButton size="small" secondary title="沉浸模式" @click="uiStore.toggleImmersive">
           <template #icon>
             <NIcon :component="ContractOutline" />
@@ -73,22 +137,62 @@ function bubbleStyle(role: string) {
     </n-layout-header>
 
     <!-- 消息流 -->
-    <n-layout-content class="message-list">
-      <div v-for="m in messages" :key="m.id" class="message-row" :class="m.role">
-        <span v-if="m.role === 'assistant'" class="msg-avatar">{{ currentRole.avatar }}</span>
-        <div class="message-bubble" :style="bubbleStyle(m.role)">
-          <div v-if="m.role === 'assistant'" class="msg-name">{{ currentRole.name }}</div>
-          <div class="msg-content">{{ m.content }}</div>
+    <n-layout-content class="chat-body">
+      <div ref="listRef" class="message-list">
+        <div v-if="loading" class="list-loading">
+          <n-spin size="large" />
         </div>
+
+        <template v-else>
+          <div
+            v-for="m in messages"
+            :key="m.id"
+            class="message-row"
+            :class="m.is_system ? 'system' : m.is_user ? 'user' : 'assistant'"
+          >
+            <div
+              v-if="m.is_system"
+              class="system-hint"
+              :style="{ background: themeVars.cardColor, color: themeVars.textColor3 }"
+            >
+              {{ m.mes }}
+            </div>
+
+            <template v-else>
+              <span v-if="!m.is_user" class="msg-avatar">{{ characterAvatar }}</span>
+              <div class="message-bubble" :style="bubbleStyle(m)">
+                <div v-if="!m.is_user" class="msg-name">{{ m.name || characterName }}</div>
+                <div class="msg-content">{{ m.mes }}</div>
+              </div>
+            </template>
+          </div>
+        </template>
       </div>
     </n-layout-content>
 
     <!-- 输入区 -->
     <n-layout-footer bordered class="chat-input">
-      <NInput type="textarea" :rows="3" placeholder="输入消息，Enter 发送 / Shift+Enter 换行" />
+      <NInput
+        v-model:value="inputText"
+        type="textarea"
+        :rows="3"
+        placeholder="输入消息，Enter 发送 / Shift+Enter 换行"
+        :resizable="false"
+        :disabled="isSending"
+        @keydown="handleKeydown"
+      />
       <n-space justify="end" :size="8" class="input-actions">
-        <NButton size="small" secondary disabled>🎲 随机</NButton>
-        <NButton type="primary">发送</NButton>
+        <NButton
+          type="primary"
+          :loading="isSending"
+          :disabled="!inputText.trim() || !session"
+          @click="sendMessage"
+        >
+          <template #icon>
+            <NIcon :component="SendOutline" />
+          </template>
+          {{ isSending ? '生成中…' : '发送' }}
+        </NButton>
       </n-space>
     </n-layout-footer>
 
@@ -136,6 +240,7 @@ function bubbleStyle(role: string) {
 
 .chat-avatar {
   font-size: 34px;
+  line-height: 1;
 }
 
 .chat-title {
@@ -149,16 +254,27 @@ function bubbleStyle(role: string) {
 
 .chat-sub {
   font-size: 12px;
-  color: #999;
+}
+
+/* 消息区：外层只负责占位，内层 div 才是滚动容器 */
+.chat-body {
+  flex: 1;
+  min-height: 0;
 }
 
 .message-list {
-  flex: 1;
+  height: 100%;
   overflow: auto;
   display: flex;
   flex-direction: column;
   gap: 16px;
   padding: 24px 20px;
+}
+
+.list-loading {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
 }
 
 .message-row {
@@ -175,8 +291,21 @@ function bubbleStyle(role: string) {
   align-self: flex-start;
 }
 
+/* 系统消息居中展示（is_system，不会发给 AI） */
+.message-row.system {
+  align-self: center;
+  max-width: 100%;
+}
+
+.system-hint {
+  padding: 4px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
 .msg-avatar {
   font-size: 28px;
+  line-height: 1.2;
 }
 
 .message-bubble {
@@ -185,14 +314,9 @@ function bubbleStyle(role: string) {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-.message-row.user .message-bubble {
-  background: #4f6ef2;
-  color: #fff;
-}
-
 .msg-name {
   font-size: 12px;
-  color: #999;
+  opacity: 0.6;
   margin-bottom: 4px;
 }
 
@@ -200,6 +324,7 @@ function bubbleStyle(role: string) {
   font-size: 14px;
   line-height: 1.6;
   white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* 输入区 */
