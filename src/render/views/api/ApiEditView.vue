@@ -7,7 +7,7 @@
 import { NIcon } from 'naive-ui'
 import { ArrowBackOutline, DownloadOutline } from '@vicons/ionicons5'
 import type { ApiKeyDTO } from '@shared/types/api_key'
-import { ApiProtocol, API_PROTOCOL_OPTIONS } from '@shared/constants/api_protocol'
+import { ApiProtocol, API_PROTOCOL_OPTIONS, type ApiProtocolType } from '@shared/constants/api_protocol'
 import { debugLog } from '@/composables/useDebugLog'
 
 const route = useRoute()
@@ -40,7 +40,7 @@ const form = reactive<{
   base_url: null | string
   key_id: null | number
   model: null | string
-  protocol: ApiProtocol
+  protocol: ApiProtocolType
 }>({
   name: '',
   base_url: null,

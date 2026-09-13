@@ -9,7 +9,7 @@
  * 从而保留各自的语义前缀（如「对话失败」「连接测试失败」）。
  */
 import axios from 'axios'
-import { ApiProtocol } from '@shared/constants/api_protocol'
+import { ApiProtocol, type ApiProtocolType } from '@shared/constants/api_protocol'
 import type { ChatMessage, ChatReplyResult } from '@shared/types/chat'
 
 /** 发起一次对话所需的最小配置（ApiConfigEntity 的结构子集） */
@@ -61,7 +61,7 @@ export function trimSlash(url: string): string {
  * @throws 请求失败或响应无法解析时抛出 Error
  */
 export async function sendChat(
-  protocol: ApiProtocol,
+  protocol: ApiProtocolType,
   target: ChatTarget,
   options: ChatOptions,
 ): Promise<ChatReplyResult> {

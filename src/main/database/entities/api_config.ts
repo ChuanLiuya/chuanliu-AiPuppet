@@ -2,7 +2,7 @@
  * AI的api配置表
  */
 import { ApiConfigDTO } from '@shared/types/api_config'
-import { ApiProtocol } from '@shared/constants/api_protocol'
+import { ApiProtocol, type ApiProtocolType } from '@shared/constants/api_protocol'
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
 import { ApiKeyEntity } from '@electron/database/entities/api_key'
 
@@ -46,7 +46,7 @@ export class ApiConfigEntity implements ApiConfigDTO {
    * 必须给 default：synchronize 给已有表加列时，无默认值的 NOT NULL 列会失败。
    */
   @Column({ type: 'varchar', default: ApiProtocol.OPENAI })
-  protocol!: ApiProtocol
+  protocol!: ApiProtocolType
   /**
    * 创建时间
    */

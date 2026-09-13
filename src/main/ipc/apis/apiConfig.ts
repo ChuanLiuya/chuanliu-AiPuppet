@@ -11,7 +11,7 @@ import type {
   UpdateApiConfigParams,
 } from '@shared/types/api_config'
 import { success, error, type ApiResponse } from '@shared/types/api-response'
-import { ApiProtocol } from '@shared/constants/api_protocol'
+import { ApiProtocol, type ApiProtocolType } from '@shared/constants/api_protocol'
 import { sendChat, trimSlash } from './providerAdapter'
 import axios from 'axios'
 
@@ -33,7 +33,7 @@ export class ApiConfigController {
    * 按 protocol 索引而非 base_url：中转站、自建服务、带尾斜杠的地址
    * 都能正常工作，不再依赖 URL 精确匹配。
    */
-  private _protocolMap: Record<ApiProtocol, ProviderConfig> = {
+  private _protocolMap: Record<ApiProtocolType, ProviderConfig> = {
     // OpenAI 兼容：OpenAI / DeepSeek / 各类中转站
     [ApiProtocol.OPENAI]: {
       endpoint: '/v1/models',
