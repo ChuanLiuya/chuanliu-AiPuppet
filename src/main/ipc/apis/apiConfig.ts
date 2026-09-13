@@ -11,6 +11,8 @@ import type {
   UpdateApiConfigParams,
 } from '@shared/types/api_config'
 import { success, error, type ApiResponse } from '@shared/types/api-response'
+import { ApiProtocol } from '@shared/constants/api_protocol'
+import { sendChat, trimSlash } from './providerAdapter'
 import axios from 'axios'
 
 
@@ -25,31 +27,29 @@ interface ProviderConfig {
 
 export class ApiConfigController {
 
-  private _providerMap: Record<string, ProviderConfig> = {
-    'https://api.openai.com': {
-      endpoint: '/v1/models',
-      authType: 'bearer',
-    },
-    'https://api.deepseek.com': {
+  /**
+   * 各协议在「获取模型列表」时的差异（路径 + 认证方式）
+   *
+   * 按 protocol 索引而非 base_url：中转站、自建服务、带尾斜杠的地址
+   * 都能正常工作，不再依赖 URL 精确匹配。
+   */
+  private _protocolMap: Record<ApiProtocol, ProviderConfig> = {
+    // OpenAI 兼容：OpenAI / DeepSeek / 各类中转站
+    [ApiProtocol.OPENAI]: {
       endpoint: '/v1/models',
       authType: 'bearer',
     },
     // Anthropic (Claude)
-    'https://api.anthropic.com': {
+    [ApiProtocol.CLAUDE]: {
       endpoint: '/v1/models',
       authType: 'api-key',
       headerName: 'x-api-key',
     },
     // Google Gemini
-    'https://generativelanguage.googleapis.com': {
+    [ApiProtocol.GEMINI]: {
       endpoint: '/v1beta/models',
       authType: 'query',
       apiKeyParam: 'key',
-    },
-    // OpenRouter
-    'https://openrouter.ai': {
-      endpoint: '/api/v1/models',
-      authType: 'bearer',
     },
   };
 
@@ -147,8 +147,8 @@ export class ApiConfigController {
   /**
    * 查找模型列表
    *
-   * 根据 base_url 匹配 provider 配置，使用关联密钥调用各厂商的 /v1/models 接口，
-   * 返回可用模型 id 列表。
+   * 根据配置的 protocol 决定路径与认证方式，使用关联密钥调用各厂商的
+   * 模型列表接口，返回可用模型 id 列表。
    */
   async findModels(cfg: findModelsParams): Promise<ApiResponse<FindModelsResult>> {
     try {
@@ -156,24 +156,24 @@ export class ApiConfigController {
       const apiKey = await this.keyRepo.findOneBy({ id: cfg.api_key_id })
       if (!apiKey) return error(`未找到 id 为 ${cfg.api_key_id} 的密钥`)
 
-      // 匹配 provider 配置，未命中则使用默认的 bearer + /v1/models
-      const provider = this._providerMap[cfg.base_url]
-      const endpoint = provider?.endpoint ?? '/v1/models'
-      const authType = provider?.authType ?? 'bearer'
+      // 按协议取路径与认证方式，未知协议兜底为 OpenAI 兼容
+      const provider = this._protocolMap[cfg.protocol] ?? this._protocolMap[ApiProtocol.OPENAI]
+      const endpoint = provider.endpoint
+      const authType = provider.authType
 
       // 构造请求头 / 查询参数
       const headers: Record<string, string> = { Accept: 'application/json' }
-      let url = cfg.base_url + endpoint
+      let url = trimSlash(cfg.base_url) + endpoint
 
       switch (authType) {
         case 'bearer':
           headers.Authorization = `Bearer ${apiKey.key}`
           break
         case 'api-key':
-          headers[provider?.headerName ?? 'x-api-key'] = apiKey.key
+          headers[provider.headerName ?? 'x-api-key'] = apiKey.key
           break
         case 'query': {
-          const param = provider?.apiKeyParam ?? 'key'
+          const param = provider.apiKeyParam ?? 'key'
           const sep = url.includes('?') ? '&' : '?'
           url += `${sep}${param}=${encodeURIComponent(apiKey.key)}`
           break
@@ -213,8 +213,9 @@ export class ApiConfigController {
   /**
    * 测试连接是否正常
    *
-   * 使用关联密钥向 DeepSeek 兼容的 chat 接口发送一条 "hello" 消息，
-   * 若正常返回则连接测试通过。
+   * 按配置的 protocol 发送一条极短的 "hello" 消息，能正常拿到回复即视为连通。
+   * 复用 providerAdapter，因此 Claude / Gemini 配置同样可测，不会出现
+   * 「对话能通但测试连接失败」的不一致。
    * @param id 配置项id
    */
   async testConnection(id: number): Promise<ApiResponse> {
@@ -222,25 +223,14 @@ export class ApiConfigController {
       const cfg = await this.repo.findOne({ where: { id }, relations: { api_key: true } })
       if (!cfg) return error(`未找到 id 为 ${id} 的配置项`, false)
       if (!cfg.api_key) return error(`配置项 ${id} 未关联密钥`, false)
-      // DeepSeek 兼容格式：Bearer 认证 + /v1/chat/completions
-      const url = `${cfg.base_url}/v1/chat/completions`
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${cfg.api_key.key}`,
-      }
-      const body = {
-        model: cfg.model,
-        max_tokens: 16,
+
+      const reply = await sendChat(cfg.protocol, cfg, {
         messages: [{ role: 'user', content: 'hello' }],
-      }
+        max_tokens: 16,
+        timeout: 15000,
+      })
 
-      const res = await axios({ method: 'post', url, headers, data: body, timeout: 15000 })
-
-      // 简单校验响应是否正常，返回响应体供前端展示
-      if (res.status >= 200 && res.status < 300) {
-        return success(res.data, `「${cfg.name}」已成功连接`)
-      }
-      return error(`连接测试失败：HTTP ${res.status}`, false)
+      return success(reply, `「${cfg.name}」已成功连接`)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       return error(`连接测试失败：${msg}`, false)

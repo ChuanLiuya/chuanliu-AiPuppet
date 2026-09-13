@@ -2,6 +2,8 @@
  * api配置项
  */
 import type { ApiKeyDTO } from "./api_key"
+import type { ApiProtocol } from '@shared/constants/api_protocol'
+
 export interface ApiConfigDTO {
   /**
    * 配置项id
@@ -24,6 +26,13 @@ export interface ApiConfigDTO {
    */
   model: string
   /**
+   * 接口协议类型
+   *
+   * 决定调用时用哪套 HTTP 规则（请求路径、认证头、请求/响应结构）。
+   * 默认 openai，兼容绝大多数厂商与中转站。
+   */
+  protocol: ApiProtocol
+  /**
    * 创建时间
    */
   created_at: Date
@@ -44,7 +53,9 @@ export type UpdateApiConfigParams = Partial<Omit<ApiConfigDTO, 'id' | 'created_a
 
 export interface findModelsParams {
   api_key_id : number,
-  base_url: string
+  base_url: string,
+  /** 接口协议类型，决定模型列表接口的路径与认证方式 */
+  protocol: ApiProtocol
 }
 
 

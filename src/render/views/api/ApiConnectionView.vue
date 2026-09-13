@@ -13,6 +13,7 @@ import {
 } from '@vicons/ionicons5'
 import type { ApiConfigDTO } from '@shared/types/api_config'
 import { AppSettingKey } from '@shared/constants/app_setting'
+import { API_PROTOCOL_LABELS } from '@shared/constants/api_protocol'
 import { renderTableActions } from '@/utils/tableActions'
 import { debugLog } from '@/composables/useDebugLog'
 import { formatTime, maskKey } from '@/utils/format'
@@ -243,6 +244,13 @@ const columns: DataTableColumns<(typeof formatedCfgs.value)[number]> = [
     key: 'id',
     resizable: true,
     minWidth: 50,
+  },
+  {
+    title: '协议',
+    key: 'protocol',
+    minWidth: 110,
+    resizable: true,
+    render: (row) => API_PROTOCOL_LABELS[row.protocol] ?? row.protocol,
   },
   {
     title: 'API 地址',

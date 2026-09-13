@@ -7,6 +7,7 @@
 import { NIcon } from 'naive-ui'
 import { ArrowBackOutline, DownloadOutline } from '@vicons/ionicons5'
 import type { ApiKeyDTO } from '@shared/types/api_key'
+import { ApiProtocol, API_PROTOCOL_OPTIONS } from '@shared/constants/api_protocol'
 import { debugLog } from '@/composables/useDebugLog'
 
 const route = useRoute()
@@ -39,11 +40,14 @@ const form = reactive<{
   base_url: null | string
   key_id: null | number
   model: null | string
+  protocol: ApiProtocol
 }>({
   name: '',
   base_url: null,
   key_id: null,
   model: null,
+  // 默认 OpenAI 兼容，覆盖面最广（DeepSeek / 中转站等）
+  protocol: ApiProtocol.OPENAI,
 })
 
 /** 模型下拉是否可用：有模型列表数据时才启用 */
@@ -95,6 +99,8 @@ async function loadConfig() {
         base_url: config.base_url || null,
         key_id: config.api_key?.id ?? null,
         model: config.model || null,
+        // 老数据可能没有该字段，兜底为 OpenAI 兼容
+        protocol: config.protocol ?? ApiProtocol.OPENAI,
       })
     }
   } catch (err) {
@@ -114,6 +120,7 @@ async function fetchModels() {
     const res = await window.electronAPI.apiConfig.findModels({
       base_url: form.base_url,
       api_key_id: form.key_id,
+      protocol: form.protocol,
     })
     debugLog('apiConfig.findModels', res)
     if (!res.success) {
@@ -138,6 +145,7 @@ async function save() {
   const base_url = form.base_url
   const key_id = form.key_id
   const model = form.model
+  const protocol = form.protocol
   if (!name.trim()) return message.warning('请填写配置名称')
   if (base_url === null || !base_url.trim()) return message.warning('请填写 API 地址')
   if (key_id === null) return message.warning('请选择 API 密钥')
@@ -151,6 +159,7 @@ async function save() {
         base_url,
         api_key_id: key_id,
         model,
+        protocol,
       })
       debugLog('apiConfig.create', res)
       if (!res.success) {
@@ -164,6 +173,7 @@ async function save() {
         base_url,
         api_key_id: key_id,
         model,
+        protocol,
       })
       debugLog('apiConfig.update', res)
       if (!res.success) {
@@ -208,6 +218,10 @@ onMounted(() => {
         <!-- 配置项目名称 -->
         <n-form-item label="配置名称" required>
           <n-input v-model:value="form.name" placeholder="例如：DS官方api-v4pro" />
+        </n-form-item>
+        <!-- 接口协议：决定用哪套 HTTP 规则与该服务通信 -->
+        <n-form-item label="接口协议" required>
+          <n-select v-model:value="form.protocol" :options="API_PROTOCOL_OPTIONS" />
         </n-form-item>
         <!-- 配置api地址 -->
         <n-form-item label="API 地址" required>

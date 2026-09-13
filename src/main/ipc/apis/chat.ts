@@ -10,7 +10,7 @@ import { ApiConfigEntity } from '@electron/database/entities/api_config'
 import { IpcChannels } from '@shared/constants/ipc_channels'
 import type { ChatSendParams, ChatReplyResult } from '@shared/types/chat'
 import { success, error, type ApiResponse } from '@shared/types/api-response'
-import axios from 'axios'
+import { sendChat } from './providerAdapter'
 
 export class ChatController {
   /** 懒获取 api_config 表的仓库 */
@@ -26,8 +26,9 @@ export class ChatController {
   /**
    * 发送对话
    *
-   * 根据传入的 api_config_id 查找配置（含密钥），调用 OpenAI 兼容的
-   * /v1/chat/completions 接口，返回 AI 回复文本。
+   * 根据传入的 api_config_id 查找配置（含密钥），按配置的 protocol
+   * 调用对应厂商的接口，返回 AI 回复文本。
+   * 各协议在路径、认证头、请求/响应结构上的差异由 providerAdapter 收敛。
    */
   async chat(params: ChatSendParams): Promise<ApiResponse<ChatReplyResult>> {
     try {
@@ -38,35 +39,12 @@ export class ChatController {
       if (!cfg) return error('未找到 API 配置')
       if (!cfg.api_key) return error('该配置未关联密钥')
 
-      // OpenAI 兼容格式：Bearer 认证 + /v1/chat/completions
-      const url = `${cfg.base_url}/v1/chat/completions`
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${cfg.api_key.key}`,
-      }
-      const body = {
-        model: cfg.model,
-        max_tokens: params.max_tokens ?? 2048,
+      const reply = await sendChat(cfg.protocol, cfg, {
         messages: params.messages,
-      }
-
-      const res = await axios({
-        method: 'post',
-        url,
-        headers,
-        data: body,
-        timeout: 60000,
+        max_tokens: params.max_tokens,
       })
 
-      if (res.status >= 200 && res.status < 300) {
-        const choice = res.data?.choices?.[0]
-        if (!choice) return error('AI 未返回有效回复')
-        return success({
-          content: choice.message?.content ?? '',
-          finish_reason: choice.finish_reason,
-        })
-      }
-      return error(`对话失败：HTTP ${res.status}`)
+      return success(reply)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       return error(`对话失败：${msg}`)
