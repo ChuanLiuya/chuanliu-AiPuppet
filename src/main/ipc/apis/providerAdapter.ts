@@ -11,7 +11,7 @@
  * 从而保留各自的语义前缀（如「对话失败」「连接测试失败」）。
  */
 import axios from 'axios'
-import { logHttpRequest } from '@electron/ipc/debugLog'
+import { logHttpError, logHttpRequest, logHttpResponse } from '@electron/ipc/debugLog'
 import type { ApiConfigEntity } from '@electron/database/entities/api_config'
 import type { ChatMessage, ChatReplyResult } from '@shared/types/chat'
 
@@ -55,16 +55,24 @@ export async function sendOpenAI(
     messages,
   }
 
-  // 打印真实请求（认证头自动掩码），同时进主进程终端与 DevTools 控制台
-  logHttpRequest('chat.sendOpenAI', { url, headers, body })
+  // 三段日志标题带后缀区分：请求 / 响应 / 失败，在 DevTools 里一眼能认出
+  logHttpRequest('chat.sendOpenAI · 请求', { url, headers, body })
 
+  const startedAt = Date.now()
   const res = await axios({
     method: 'post',
     url,
     headers,
     data: body,
     timeout: options.timeout ?? DEFAULT_TIMEOUT,
+  }).catch((err: unknown) => {
+    // 厂商返回的真实错误体在 err.response.data 里，不打出来就只剩一句
+    // "Request failed with status code 401"，看不出到底是哪里不对
+    logHttpError('chat.sendOpenAI · 失败', err, startedAt)
+    throw err
   })
+
+  logHttpResponse('chat.sendOpenAI · 响应', res, startedAt)
 
   const choice = res.data?.choices?.[0]
   if (!choice) throw new Error('AI 未返回有效回复')

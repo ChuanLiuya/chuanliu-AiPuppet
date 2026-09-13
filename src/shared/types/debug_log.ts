@@ -5,8 +5,10 @@
  * payload 必须是可结构化克隆的普通数据（不能传函数、class 实例、Vue 响应式代理）。
  */
 export interface DebugLogEntry {
-  /** 日志分组标题，如 'chat.sendOpenAI' */
+  /** 日志分组标题，如 'chat.sendOpenAI · 请求' */
   title: string
   /** 日志内容 */
   payload: unknown
+  /** 日志级别，渲染进程据此决定配色（不传时按普通日志色显示） */
+  level?: 'info' | 'error'
 }
