@@ -2,9 +2,10 @@
  * API 接口协议类型
  *
  * 决定「用哪套 HTTP 规则」与该服务通信（请求路径、认证头、请求/响应结构）。
- *
- * 注意：协议 ≠ 厂商。中转站用 OpenAI 兼容格式提供 Claude 模型时，协议仍是 openai。
- * 主进程据此分派请求构造逻辑，渲染进程据此渲染下拉选项，两端共用同一份定义。
+ * 举个例子：
+ * 如果选择的是openai协议，发送对话请求时会 POST /v1/chat/completions，Authorization: Bearer <key>，请求体和响应体都遵循 OpenAI 的格式。
+ * 如果选择的是claude协议，发送对话请求时会 POST /v1/messages，Authorization: Bearer <key>，请求
+ * 数据库存储这个到 ApiConfigEntity 中，主进程根据这个发送不同类型的请求，渲染进程据此渲染下拉选项，两端共用同一份定义。
  */
 export const ApiProtocol = {
   /** OpenAI 兼容格式：OpenAI / DeepSeek / OpenRouter / 各类中转站 */
@@ -22,9 +23,9 @@ export const API_PROTOCOLS: ApiProtocol[] = Object.values(ApiProtocol)
 
 /** 前端下拉框选项 */
 export const API_PROTOCOL_OPTIONS = [
-  { label: 'OpenAI 兼容（DeepSeek / OpenRouter / 中转站）', value: ApiProtocol.OPENAI },
-  { label: 'Claude（Anthropic 原生）', value: ApiProtocol.CLAUDE },
-  { label: 'Gemini（Google 原生）', value: ApiProtocol.GEMINI },
+  { label: 'OpenAI', value: ApiProtocol.OPENAI, disabled: false },
+  { label: 'Claude', value: ApiProtocol.CLAUDE, disabled: true },
+  { label: 'Gemini', value: ApiProtocol.GEMINI, disabled: true },
 ]
 
 /** 协议短名称，用于表格等空间有限的场景 */
