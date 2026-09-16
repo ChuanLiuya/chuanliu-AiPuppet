@@ -165,7 +165,7 @@ onMounted(loadSessions)
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: 10px 24px;
 }
 
 .page-title {

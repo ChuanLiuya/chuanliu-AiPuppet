@@ -110,7 +110,11 @@ watch(sessionId, loadChat)
 </script>
 
 <template>
-  <n-layout class="chat-main">
+  <n-layout
+    class="chat-main"
+    :content-style="{display: `flex`, flexDirection: `column`, height: `100vh`}"
+    :native-scrollbar="false"
+  >
     <!-- 顶部角色栏（沉浸模式隐藏） -->
     <n-layout-header v-show="!uiStore.immersive" bordered class="chat-header">
       <n-space align="center" :size="12" class="chat-header-left">
@@ -137,7 +141,7 @@ watch(sessionId, loadChat)
     </n-layout-header>
 
     <!-- 消息流 -->
-    <n-layout-content class="chat-body">
+    <n-layout-content class="chat-body" :native-scrollbar="false">
       <div ref="listRef" class="message-list">
         <div v-if="loading" class="list-loading">
           <n-spin size="large" />
@@ -216,138 +220,128 @@ watch(sessionId, loadChat)
 </template>
 
 <style scoped>
-/* 右侧聊天区 */
+/* 右侧聊天区（根节点 n-layout.chat-main，其余规则全部嵌套其内） */
 .chat-main {
-  flex: 1;
-  height: 100%;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
+  /* 顶部角色栏 */
+  .chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
 
-.chat-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 20px;
-}
+    .chat-header-left {
+      display: flex;
+      flex: 1;
+      min-width: 0;
+    }
 
-.chat-header-left {
-  display: flex;
-  flex: 1;
-  min-width: 0;
-}
+    .chat-avatar {
+      font-size: 34px;
+      line-height: 1;
+    }
 
-.chat-avatar {
-  font-size: 34px;
-  line-height: 1;
-}
+    .chat-title {
+      flex: 1;
+    }
 
-.chat-title {
-  flex: 1;
-}
+    .chat-name {
+      font-size: 16px;
+      font-weight: 600;
+    }
 
-.chat-name {
-  font-size: 16px;
-  font-weight: 600;
-}
+    .chat-sub {
+      font-size: 12px;
+    }
+  }
 
-.chat-sub {
-  font-size: 12px;
-}
+  /* 消息区 */
+  .chat-body {
+    .message-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 24px 20px;
 
-/* 消息区：外层只负责占位，内层 div 才是滚动容器 */
-.chat-body {
-  flex: 1;
-  min-height: 0;
-}
+      .list-loading {
+        display: flex;
+        justify-content: center;
+        padding: 48px 0;
+      }
 
-.message-list {
-  height: 100%;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 24px 20px;
-}
+      .message-row {
+        display: flex;
+        gap: 10px;
+        max-width: 78%;
 
-.list-loading {
-  display: flex;
-  justify-content: center;
-  padding: 48px 0;
-}
+        &.user {
+          align-self: flex-end;
+        }
 
-.message-row {
-  display: flex;
-  gap: 10px;
-  max-width: 78%;
-}
+        &.assistant {
+          align-self: flex-start;
+        }
 
-.message-row.user {
-  align-self: flex-end;
-}
+        /* 系统消息居中展示（is_system，不会发给 AI） */
+        &.system {
+          align-self: center;
+          max-width: 100%;
 
-.message-row.assistant {
-  align-self: flex-start;
-}
+          .system-hint {
+            padding: 4px 12px;
+            border-radius: 10px;
+            font-size: 12px;
+          }
+        }
 
-/* 系统消息居中展示（is_system，不会发给 AI） */
-.message-row.system {
-  align-self: center;
-  max-width: 100%;
-}
+        .msg-avatar {
+          font-size: 28px;
+          line-height: 1.2;
+        }
 
-.system-hint {
-  padding: 4px 12px;
-  border-radius: 10px;
-  font-size: 12px;
-}
+        .message-bubble {
+          padding: 10px 14px;
+          border-radius: 12px;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 
-.msg-avatar {
-  font-size: 28px;
-  line-height: 1.2;
-}
+          .msg-name {
+            font-size: 12px;
+            opacity: 0.6;
+            margin-bottom: 4px;
+          }
 
-.message-bubble {
-  padding: 10px 14px;
-  border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
+          .msg-content {
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+          }
+        }
+      }
+    }
+  }
 
-.msg-name {
-  font-size: 12px;
-  opacity: 0.6;
-  margin-bottom: 4px;
-}
+  /* 输入区 */
+  .chat-input {
+    padding: 16px 20px;
 
-.msg-content {
-  font-size: 14px;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
+    .input-actions {
+      margin-top: 10px;
+    }
+  }
 
-/* 输入区 */
-.chat-input {
-  padding: 16px 20px;
-}
+  /* 沉浸模式退出按钮 */
+  .exit-immersive {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 10;
+    opacity: 0.4;
+    transition: opacity 0.2s;
 
-.input-actions {
-  margin-top: 10px;
-}
-
-/* 沉浸模式退出按钮 */
-.exit-immersive {
-  position: fixed;
-  top: 12px;
-  right: 12px;
-  z-index: 10;
-  opacity: 0.4;
-  transition: opacity 0.2s;
-}
-
-.exit-immersive:hover {
-  opacity: 1;
+    &:hover {
+      opacity: 1;
+    }
+  }
 }
 
 /* 退出按钮进出场动画 */
