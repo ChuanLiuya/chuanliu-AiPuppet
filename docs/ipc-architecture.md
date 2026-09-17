@@ -125,7 +125,9 @@ graph LR
 | API 配置 | `api:apiConfig:*` | `src/main/ipc/apis/apiConfig.ts` | `src/main/preload/apis/apiConfig.ts` | 增删改查、拉取模型列表、测试连接 |
 | API 密钥 | `api:apiKey:*` | `src/main/ipc/apis/apiKey.ts` | `src/main/preload/apis/apiKey.ts` | 增删改查 |
 | 应用设置 | `api:appSetting:*` | `src/main/ipc/apis/appSetting.ts` | `src/main/preload/apis/appSetting.ts` | 单键读写 / 删除 |
-| AI 对话 | `api:chat:*` | `src/main/ipc/apis/chat.ts` | `src/main/preload/apis/chat.ts` | 发送对话请求 |
+| AI 对话 | `api:chat:*` | `src/main/ipc/apis/chat.ts` | `src/main/preload/apis/chat.ts` | 发送消息（自动读写聊天历史并调用 AI） |
+| 会话 | `api:chatSession:*` | `src/main/ipc/apis/chatSession.ts` | `src/main/preload/apis/chatSession.ts` | 会话增删改查、列表（附最后一条消息摘要） |
+| 聊天历史 | `api:chatHistory:*` | `src/main/ipc/apis/chatHistory.ts` | `src/main/preload/apis/chatHistory.ts` | 会话下的历史记录增删改查 / 清空 |
 
 模块的挂载点有两处，新增模块时都要登记：
 

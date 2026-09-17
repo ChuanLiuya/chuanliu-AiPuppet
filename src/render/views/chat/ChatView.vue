@@ -1,13 +1,14 @@
 <script setup lang="ts">
-// 具体聊天页：加载会话与历史消息，发送消息（由主进程自动持久化）
-import type { ChatMessageDTO, ChatSessionDTO } from '@shared/types/chat'
-import { resolveCharacterDisplayName } from '@shared/utils/character_card'
+// 具体聊天页：会话与历史消息取自 chat store，发送消息（落库由主进程负责）
+import type { ChatHistoryDTO } from '@shared/types/chat'
+import { useChatStore } from '@/stores/chat'
 import { useUiStore } from '@/stores/ui'
-import { debugLog } from '@/composables/useDebugLog'
 import { useThemeVars } from 'naive-ui'
 import { ArrowBackOutline, ContractOutline, ExpandOutline, SendOutline } from '@vicons/ionicons5'
 
 const uiStore = useUiStore()
+/** 当前会话与历史消息都由 chat store 持有，页面只负责渲染（统一 chatStore.xxx 访问，不解构） */
+const chatStore = useChatStore()
 const router = useRouter()
 const route = useRoute()
 const themeVars = useThemeVars()
@@ -15,74 +16,34 @@ const message = useMessage()
 
 /** 会话 id（来自路由参数） */
 const sessionId = computed(() => Number(route.params.id))
-/** 当前会话 */
-const session = ref<ChatSessionDTO | null>(null)
-/** 消息列表 */
-const messages = ref<ChatMessageDTO[]>([])
 /** 输入框文本 */
 const inputText = ref('')
-/** 是否正在加载历史 */
-const loading = ref(false)
-/** 是否正在等待 AI 回复 */
-const isSending = ref(false)
-/** 消息滚动容器 */
-const listRef = ref<HTMLElement | null>(null)
 
-/** 角色展示名（character_card 可能是角色名，也可能是角色卡地址；会话未加载时给兜底文案） */
-const characterName = computed(() => resolveCharacterDisplayName(session.value?.character_card, '角色'))
-
-/** 加载会话信息与历史消息 */
+/** 进入会话：store 里已有该会话的缓存时不会重复请求 */
 async function loadChat() {
-  loading.value = true
-  const [sessionRes, messageRes] = await Promise.all([
-    window.electronAPI.chatSession.findOneById(sessionId.value),
-    window.electronAPI.chatMessage.findAll(sessionId.value),
-  ])
-  debugLog('chatSession.findOneById', sessionRes)
-  debugLog('chatMessage.findAll', messageRes)
-  loading.value = false
-
-  if (sessionRes.success && sessionRes.result) session.value = sessionRes.result
-  else message.error(sessionRes.message)
-
-  if (messageRes.success) messages.value = messageRes.result
-  else message.error(messageRes.message)
-
+  const err = await chatStore.enterSession(sessionId.value)
+  if (err) message.error(err)
 }
 
 /** 气泡颜色跟随主题：用户消息用主题色，其余（角色/系统）用卡片底色 */
-function bubbleStyle(m: ChatMessageDTO) {
+function bubbleStyle(m: ChatHistoryDTO) {
   return m.role === 'user'
     ? { background: themeVars.value.primaryColor, color: '#fff' }
     : { background: themeVars.value.cardColor, color: themeVars.value.textColor1 }
 }
 
-/** 发送消息 */
+/** 发送消息（落库与入列都在 store 里做） */
 async function sendMessage() {
   const text = inputText.value.trim()
-  if (!text || isSending.value || !session.value) return
+  if (!text || chatStore.isWaitingResponse || !chatStore.currentSession) return
 
+  // 先清空输入框，失败时再按结果还原
   inputText.value = ''
-  isSending.value = true
+  const outcome = await chatStore.sendMessage(text)
 
-  const res = await window.electronAPI.chat.send({
-    session_id: session.value.id,
-    content: text,
-  })
-  debugLog('chat.send', res)
-  isSending.value = false
-
-  if (res.result) {
-    // 用户消息在调 AI 前就已落库，失败时也会带回来，所以直接入列
-    messages.value.push(res.result.user_message)
-    if (res.result.assistant_message) messages.value.push(res.result.assistant_message)
-    else message.error(res.message)
-  } else {
-    // 连用户消息都没落库（如未配置 API），把输入还原回输入框
-    message.error(res.message)
-    inputText.value = text
-  }
-
+  // 连用户消息都没落库（如未配置 API），把输入还原回输入框
+  if (!outcome.saved) inputText.value = text
+  if (outcome.error) message.error(outcome.error)
 }
 
 /** Enter 发送 / Shift+Enter 换行 */
@@ -113,9 +74,9 @@ watch(sessionId, loadChat)
           </template>
         </NButton>
         <div class="chat-title">
-          <div class="chat-name">{{ characterName }}</div>
+          <div class="chat-name">{{ chatStore.characterName }}</div>
           <div class="chat-sub" :style="{ color: themeVars.textColor3 }">
-            AI 角色扮演 · {{ messages.length }} 条消息
+            AI 角色扮演 · {{ chatStore.messages.length }} 条消息
           </div>
         </div>
       </n-space>
@@ -131,13 +92,13 @@ watch(sessionId, loadChat)
     <!-- 消息流 -->
     <n-layout-content class="chat-body" :native-scrollbar="false">
       <div ref="listRef" class="message-list">
-        <div v-if="loading" class="list-loading">
+        <div v-if="chatStore.isLoading" class="list-loading">
           <n-spin size="large" />
         </div>
 
         <template v-else>
           <div
-            v-for="m in messages"
+            v-for="m in chatStore.messages"
             :key="m.id"
             class="message-row"
             :class="m.role"
@@ -152,7 +113,7 @@ watch(sessionId, loadChat)
 
             <template v-else>
               <div class="message-bubble" :style="bubbleStyle(m)">
-                <div v-if="m.role !== 'user'" class="msg-name">{{ m.name || characterName }}</div>
+                <div v-if="m.role !== 'user'" class="msg-name">{{ m.name || chatStore.characterName }}</div>
                 <div class="msg-content">{{ m.content }}</div>
               </div>
             </template>
@@ -169,20 +130,20 @@ watch(sessionId, loadChat)
         :rows="3"
         placeholder="输入消息，Enter 发送 / Shift+Enter 换行"
         :resizable="false"
-        :disabled="isSending"
+        :disabled="chatStore.isWaitingResponse"
         @keydown="handleKeydown"
       />
       <n-space justify="end" :size="8" class="input-actions">
         <NButton
           type="primary"
-          :loading="isSending"
-          :disabled="!inputText.trim() || !session"
+          :loading="chatStore.isWaitingResponse"
+          :disabled="!inputText.trim() || !chatStore.currentSession"
           @click="sendMessage"
         >
           <template #icon>
             <NIcon :component="SendOutline" />
           </template>
-          {{ isSending ? '生成中…' : '发送' }}
+          {{ chatStore.isWaitingResponse ? '生成中…' : '发送' }}
         </NButton>
       </n-space>
     </n-layout-footer>

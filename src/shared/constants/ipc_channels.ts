@@ -71,19 +71,19 @@ export const IpcChannels = {
     /** 删除会话（级联删除其下所有消息） */
     remove: 'api:chatSession:remove',
   },
-  chatMessage: {
-    /** 查找某个会话下的全部消息 */
-    findAll: 'api:chatMessage:findAll',
-    /** 通过id查找单条消息 */
-    findOneById: 'api:chatMessage:findOneById',
-    /** 新增一条消息 */
-    create: 'api:chatMessage:create',
-    /** 修改一条消息 */
-    update: 'api:chatMessage:update',
-    /** 删除一条消息 */
-    remove: 'api:chatMessage:remove',
-    /** 清空某个会话下的全部消息 */
-    clear: 'api:chatMessage:clear',
+  chatHistory: {
+    /** 查找某个会话下的全部历史 */
+    findAll: 'api:chatHistory:findAll',
+    /** 通过id查找单条历史 */
+    findOneById: 'api:chatHistory:findOneById',
+    /** 新增一条历史 */
+    create: 'api:chatHistory:create',
+    /** 修改一条历史 */
+    update: 'api:chatHistory:update',
+    /** 删除一条历史 */
+    remove: 'api:chatHistory:remove',
+    /** 清空某个会话下的全部历史 */
+    clear: 'api:chatHistory:clear',
   },
   debug: {
     /** 主进程 → 渲染进程：推送调试日志（推送通道，用 on 订阅而非 invoke） */

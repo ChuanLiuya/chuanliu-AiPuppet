@@ -12,7 +12,7 @@ import { AppSettingKey } from '@shared/constants/app_setting'
 import { IpcChannels } from '@shared/constants/ipc_channels'
 import { resolveCharacterDisplayName } from '@shared/utils/character_card'
 import type {
-  ChatMessageDTO,
+  ChatHistoryDTO,
   ChatSendMessageParams,
   ChatSendMessageResult,
 } from '@shared/types/chat'
@@ -55,7 +55,7 @@ export class ChatController {
    * result 里带着已保存的 user_message，assistant_message 为 null。
    */
   async send(params: ChatSendMessageParams): Promise<ApiResponse<ChatSendMessageResult>> {
-    let userMessage: ChatMessageDTO | null = null
+    let userMessage: ChatHistoryDTO | null = null
     try {
       const session = await this.ChatSessionRepo.findOneBy({ id: params.session_id })
       if (!session) return error('未找到会话')

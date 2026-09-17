@@ -29,30 +29,20 @@ export interface ChatReplyResult {
 }
 
 /**
- * 一个会话（历史记录的容器）
- *
- * 一个角色可以有多个会话，类似 SillyTavern「同一个角色开多条聊天记录」。
- * 角色信息暂以纯文本冗余存储（角色表尚未落地），将来接上角色表后可改为外键。
+ * 一个会话
  */
 export interface ChatSessionDTO {
   /** 会话 id */
   id: number
-  /** 会话标题（列表页展示） */
+  /** 会话标题 */
   title: string
   /**
-   * 角色卡（兼容两态字段）
-   *
-   * - 角色卡功能落地前：直接存纯文本角色名（当前形态，如「苏妲己」）
-   * - 角色卡功能落地后：存角色卡地址（如 `res://characters/苏妲己.json`）
-   *
-   * 两种形态都是字符串，取值时不要直接当名字用，
-   * 一律走 `@shared/utils/character_card` 的
-   * `isCharacterCardRef()` / `resolveCharacterDisplayName()` 判定与取展示名。
+   * 角色卡
    */
   character_card: string
   /** 创建时间 */
   created_at: Date
-  /** 最后更新时间（有新消息时刷新，列表按此倒序排列） */
+  /** 最后更新时间 */
   updated_at: Date
 }
 
@@ -64,10 +54,9 @@ export type ChatSessionCreateInput = Pick<ChatSessionDTO, 'character_card'> &
 export type ChatSessionUpdateInput = Partial<ChatSessionCreateInput>
 
 /**
- * 会话列表项（会话 + 最后一条消息的摘要）
+ * 会话列表项
  *
- * 列表页需要「最近一次聊天内容」做预览，但会话表本身不存正文，
- * 因此由后端联查后拼出这个派生结构，不落库。
+ * 内容为：会话 + 最后一条消息的摘要
  */
 export interface ChatSessionListItem extends ChatSessionDTO {
   /** 最后一条消息的正文；该会话还没有消息时为 null */
@@ -75,13 +64,13 @@ export interface ChatSessionListItem extends ChatSessionDTO {
 }
 
 /**
- * 一条聊天消息（历史记录的最小单元）
+ * 一条聊天历史记录（chat_history 表的一行，也是历史记录的最小单元）
  *
  * 身份用单一的 `role` 字符串表达（user / assistant / system …），与接口协议对齐；
  * 具体是谁说的另外记在 `name` 上（群聊里多个角色、旁白都能靠它区分）。
  * 发给 AI 的消息由 providerAdapter 直接取 `role`，存储层与协议不再有推导关系。
  */
-export interface ChatMessageDTO {
+export interface ChatHistoryDTO {
   /** 消息 id */
   id: number
   /** 所属会话 id */
@@ -98,16 +87,16 @@ export interface ChatMessageDTO {
   created_at: Date
 }
 
-/** 创建一条消息的参数（extra 可省略） */
-export type ChatMessageCreateInput = Pick<
-  ChatMessageDTO,
+/** 创建一条聊天历史的参数（extra 可省略） */
+export type ChatHistoryCreateInput = Pick<
+  ChatHistoryDTO,
   'session_id' | 'name' | 'role' | 'content'
 > &
-  Partial<Pick<ChatMessageDTO, 'extra'>>
+  Partial<Pick<ChatHistoryDTO, 'extra'>>
 
-/** 更新一条消息的可选字段（不允许改所属会话与创建时间） */
-export type ChatMessageUpdateInput = Partial<
-  Omit<ChatMessageDTO, 'id' | 'session_id' | 'created_at'>
+/** 更新一条聊天历史的可选字段（不允许改所属会话与创建时间） */
+export type ChatHistoryUpdateInput = Partial<
+  Omit<ChatHistoryDTO, 'id' | 'session_id' | 'created_at'>
 >
 
 /**
@@ -133,7 +122,7 @@ export interface ChatSendMessageResult {
    *
    * 即使后续 AI 调用失败，用户消息也会保留（与 SillyTavern 一致，避免丢输入）。
    */
-  user_message: ChatMessageDTO
+  user_message: ChatHistoryDTO
   /** AI 回复消息；生成失败时为 null */
-  assistant_message: ChatMessageDTO | null
+  assistant_message: ChatHistoryDTO | null
 }

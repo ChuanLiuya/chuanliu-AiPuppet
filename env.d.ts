@@ -9,7 +9,7 @@ import type { ApiKeyApi } from './src/main/preload/apis/apiKey'
 import type { AppSettingApi } from './src/main/preload/apis/appSetting'
 import type { ChatApi } from './src/main/preload/apis/chat'
 import type { ChatSessionApi } from './src/main/preload/apis/chatSession'
-import type { ChatMessageApi } from './src/main/preload/apis/chatMessage'
+import type { ChatHistoryApi } from './src/main/preload/apis/chatHistory'
 import type { DebugApi } from './src/main/preload/apis/debug'
 
 declare global {
@@ -22,7 +22,7 @@ declare global {
       appSetting: AppSettingApi
       chat: ChatApi
       chatSession: ChatSessionApi
-      chatMessage: ChatMessageApi
+      chatHistory: ChatHistoryApi
       debug: DebugApi
     }
     /** 系统环境信息（preload 直接读取，不经过 IPC） */

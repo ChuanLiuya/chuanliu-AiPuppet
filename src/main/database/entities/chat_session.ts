@@ -19,11 +19,13 @@ export class ChatSessionEntity implements ChatSessionDTO {
   @PrimaryGeneratedColumn()
   id!: number
 
-  /** 会话标题（列表页展示；创建时未传则留空，由前端或后续逻辑补默认值） */
+  /** 会话标题 */
   @Column({ default: '' })
   title!: string
 
-  /** 角色卡（两态：角色卡地址，或纯文本角色名） */
+  /**
+   * 角色卡
+   */
   @Column({ default: '' })
   character_card!: string
 
@@ -31,7 +33,11 @@ export class ChatSessionEntity implements ChatSessionDTO {
   @CreateDateColumn()
   created_at!: Date
 
-  /** 最后更新时间（有新消息时刷新，列表按此倒序） */
+  /**
+   * 最后更新时间
+   * 有新消息就刷新此字段
+   * 用于前端展示所有会话时的默认顺序
+   */
   @UpdateDateColumn()
   updated_at!: Date
 }

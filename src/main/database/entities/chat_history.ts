@@ -3,12 +3,12 @@
  *
  * 一条记录 = 一条消息，按 id 升序即为时间顺序。
  */
-import { ChatMessageDTO, type ChatRole } from '@shared/types/chat'
+import { ChatHistoryDTO, type ChatRole } from '@shared/types/chat'
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
 import { ChatSessionEntity } from '@electron/database/entities/chat_session'
 
 @Entity('chat_history')
-export class ChatHistoryEntity implements ChatMessageDTO {
+export class ChatHistoryEntity implements ChatHistoryDTO {
   /** 消息 id */
   @PrimaryGeneratedColumn()
   id!: number

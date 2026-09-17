@@ -4,21 +4,23 @@ import type { ChatSessionListItem } from '@shared/types/chat'
 import { resolveCharacterDisplayName } from '@shared/utils/character_card'
 import { formatRelativeTime } from '@/utils/format'
 import { debugLog } from '@/composables/useDebugLog'
+import { useChatStore } from '@/stores/chat'
 import { AddOutline } from '@vicons/ionicons5'
 
 const router = useRouter()
 const message = useMessage()
+const chatStore = useChatStore()
 
 /** 会话列表（含最后一条消息摘要） */
 const sessions = ref<ChatSessionListItem[]>([])
 /** 是否正在加载列表 */
-const loading = ref(false)
+const isListLoading = ref(false)
 /** 是否显示「新建会话」弹窗 */
-const showCreate = ref(false)
+const isShowCreate = ref(false)
 /** 是否正在创建 */
-const creating = ref(false)
+const isCreatingSession = ref(false)
 
-/** 新建会话表单（角色卡字段当前直接填角色名） */
+/** 新建会话表单 */
 const createForm = reactive({
   character_card: '',
   title: '',
@@ -26,19 +28,30 @@ const createForm = reactive({
 
 /** 加载会话列表 */
 async function loadSessions() {
-  loading.value = true
+  isListLoading.value = true
   const res = await window.electronAPI.chatSession.listWithPreview()
   debugLog('chatSession.listWithPreview', res)
-  loading.value = false
+  isListLoading.value = false
   if (res.success) sessions.value = res.result
   else message.error(res.message)
+}
+
+/**
+ * 进入会话
+ *
+ * 列表已经拿到整条会话记录，交给 store 带过去，聊天页就不用再查一次会话信息；
+ * 历史消息仍由聊天页在挂载时补拉（列表只有最后一条摘要）。
+ */
+function openSession(s: ChatSessionListItem) {
+  chatStore.setCurrentSession(s)
+  router.push(`/chat/${s.id}`)
 }
 
 /** 打开新建弹窗并重置表单 */
 function openCreate() {
   createForm.character_card = ''
   createForm.title = ''
-  showCreate.value = true
+  isShowCreate.value = true
 }
 
 /** 确认新建会话，成功后直接进入该会话 */
@@ -49,20 +62,20 @@ async function confirmCreate() {
     return
   }
 
-  creating.value = true
+  isCreatingSession.value = true
   const res = await window.electronAPI.chatSession.create({
     character_card: card,
     title: createForm.title.trim() || resolveCharacterDisplayName(card),
   })
   debugLog('chatSession.create', res)
-  creating.value = false
+  isCreatingSession.value = false
 
   if (!res.success) {
     message.error(res.message)
     return
   }
 
-  showCreate.value = false
+  isShowCreate.value = false
   router.push(`/chat/${res.result}`)
 }
 
@@ -75,6 +88,8 @@ async function removeSession(id: number) {
     return
   }
   message.success(res.message)
+  // 删掉的正是当前会话：顺手清掉 store 里的临时状态
+  if (chatStore.sessionId === id) chatStore.clear()
   await loadSessions()
 }
 
@@ -94,7 +109,7 @@ onMounted(loadSessions)
     </n-layout-header>
 
     <n-layout-content class="session-wrap">
-      <div v-if="loading" class="list-loading">
+      <div v-if="isListLoading" class="list-loading">
         <n-spin size="large" />
       </div>
 
@@ -110,7 +125,7 @@ onMounted(loadSessions)
           :key="s.id"
           hoverable
           class="session-item"
-          @click="router.push(`/chat/${s.id}`)"
+          @click="openSession(s)"
         >
           <div class="session-body">
             <div class="session-info">
@@ -131,7 +146,7 @@ onMounted(loadSessions)
     </n-layout-content>
 
     <!-- 新建会话弹窗：角色卡功能落地前先在这里手填角色名 -->
-    <n-modal v-model:show="showCreate" preset="card" title="新建会话" class="create-modal">
+    <n-modal v-model:show="isShowCreate" preset="card" title="新建会话" class="create-modal">
       <n-form label-placement="left" label-width="64">
         <n-form-item label="角色">
           <n-input
@@ -145,8 +160,8 @@ onMounted(loadSessions)
       </n-form>
       <template #footer>
         <n-space justify="end">
-          <n-button @click="showCreate = false">取消</n-button>
-          <n-button type="primary" :loading="creating" @click="confirmCreate">创建</n-button>
+          <n-button @click="isShowCreate = false">取消</n-button>
+          <n-button type="primary" :loading="isCreatingSession" @click="confirmCreate">创建</n-button>
         </n-space>
       </template>
     </n-modal>

@@ -13,7 +13,7 @@
 import axios from 'axios'
 import { logHttpError, logHttpRequest, logHttpResponse } from '@electron/ipc/debugLog'
 import type { ApiConfigEntity } from '@electron/database/entities/api_config'
-import type { ChatMessage, ChatMessageDTO, ChatReplyResult } from '@shared/types/chat'
+import type { ChatMessage, ChatHistoryDTO, ChatReplyResult } from '@shared/types/chat'
 
 /** 默认超时（毫秒） */
 const DEFAULT_TIMEOUT = 60000
@@ -38,7 +38,7 @@ export function trimSlash(url: string): string {
  * @param rows chat_history 表的记录（按时间升序）
  * @returns OpenAI 兼容格式的 messages
  */
-export function toApiMessages(rows: ChatMessageDTO[]): ChatMessage[] {
+export function toApiMessages(rows: ChatHistoryDTO[]): ChatMessage[] {
   return rows.map((m) => ({
     role: m.role,
     content: m.content,
