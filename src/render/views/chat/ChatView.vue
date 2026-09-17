@@ -32,12 +32,6 @@ const characterName = computed(() => session.value?.character_name || '角色')
 /** 角色头像 */
 const characterAvatar = computed(() => session.value?.avatar || '🤖')
 
-/** 滚动到消息底部 */
-async function scrollToBottom() {
-  await nextTick()
-  const el = listRef.value
-  if (el) el.scrollTop = el.scrollHeight
-}
 
 /** 加载会话信息与历史消息 */
 async function loadChat() {
@@ -56,7 +50,6 @@ async function loadChat() {
   if (messageRes.success) messages.value = messageRes.result
   else message.error(messageRes.message)
 
-  await scrollToBottom()
 }
 
 /** 气泡颜色跟随主题：用户消息用主题色，角色消息用卡片底色 */
@@ -73,7 +66,6 @@ async function sendMessage() {
 
   inputText.value = ''
   isSending.value = true
-  await scrollToBottom()
 
   const res = await window.electronAPI.chat.send({
     session_id: session.value.id,
@@ -93,7 +85,6 @@ async function sendMessage() {
     inputText.value = text
   }
 
-  await scrollToBottom()
 }
 
 /** Enter 发送 / Shift+Enter 换行 */
