@@ -1,10 +1,6 @@
 /**
  * 对话模块 —— 主进程 Controller
  *
- * 职责：接收前端的发送请求，按会话读取历史记录、调用 AI 接口，
- * 并把用户消息与 AI 回复一并落库。
- *
- * 各协议的 HTTP 差异由 providerAdapter 收敛。
  */
 import { ipcMain } from 'electron'
 import { dataSource } from '@electron/database'
@@ -25,22 +21,22 @@ import { sendOpenAI, toApiMessages } from './providerAdapter'
 
 export class ChatController {
   /** 懒获取 api_config 表的仓库 */
-  private get repo() {
+  private get ApiConfigrepo() {
     return dataSource.getRepository(ApiConfigEntity)
   }
 
   /** 懒获取 chat_session 表的仓库 */
-  private get sessionRepo() {
+  private get ChatSessionRepo() {
     return dataSource.getRepository(ChatSessionEntity)
   }
 
   /** 懒获取 chat_history 表的仓库 */
-  private get messageRepo() {
+  private get ChatHistoryRepo() {
     return dataSource.getRepository(ChatHistoryEntity)
   }
 
   /** 懒获取 app_setting 表的仓库（读取全局选中的 API 配置） */
-  private get settingRepo() {
+  private get AppSettingRepo() {
     return dataSource.getRepository(AppSettingEntity)
   }
 
@@ -61,14 +57,13 @@ export class ChatController {
   async send(params: ChatSendMessageParams): Promise<ApiResponse<ChatSendMessageResult>> {
     let userMessage: ChatMessageDTO | null = null
     try {
-      const session = await this.sessionRepo.findOneBy({ id: params.session_id })
+      const session = await this.ChatSessionRepo.findOneBy({ id: params.session_id })
       if (!session) return error('未找到会话')
 
-      // 统一使用全局选中的 API 配置（在 API 连接页面设置）
       const configId = await this.getSelectedConfigId()
       if (!configId) return error('尚未选择 API 配置，请先在 API 连接页面选择')
 
-      const cfg = await this.repo.findOne({
+      const cfg = await this.ApiConfigrepo.findOne({
         where: { id: configId },
         relations: { api_key: true },
       })
@@ -76,8 +71,8 @@ export class ChatController {
       if (!cfg.api_key) return error('该配置未关联密钥')
 
       // 1. 先落库用户消息
-      userMessage = await this.messageRepo.save(
-        this.messageRepo.create({
+      userMessage = await this.ChatHistoryRepo.save(
+        this.ChatHistoryRepo.create({
           session_id: session.id,
           name: params.user_name ?? '你',
           role: 'user',
@@ -86,7 +81,7 @@ export class ChatController {
       )
 
       // 2. 读取该会话全部历史，转成接口格式
-      const history = await this.messageRepo.find({
+      const history = await this.ChatHistoryRepo.find({
         where: { session_id: session.id },
         order: { id: 'ASC' },
       })
@@ -96,8 +91,8 @@ export class ChatController {
       const reply = await sendOpenAI(cfg, messages, { max_tokens: params.max_tokens })
 
       // 4. 落库 AI 回复
-      const assistantMessage = await this.messageRepo.save(
-        this.messageRepo.create({
+      const assistantMessage = await this.ChatHistoryRepo.save(
+        this.ChatHistoryRepo.create({
           session_id: session.id,
           name: resolveCharacterDisplayName(session.character_card, 'AI'),
           role: 'assistant',
@@ -107,7 +102,7 @@ export class ChatController {
       )
 
       // 5. 刷新会话更新时间（列表按此倒序）
-      await this.sessionRepo.update(session.id, { updated_at: new Date() })
+      await this.ChatSessionRepo.update(session.id, { updated_at: new Date() })
 
       return success({ user_message: userMessage, assistant_message: assistantMessage })
     } catch (err) {
@@ -122,7 +117,7 @@ export class ChatController {
 
   /** 读取全局选中的 API 配置 id（存的是字符串，解析失败按未选处理） */
   private async getSelectedConfigId(): Promise<number | null> {
-    const row = await this.settingRepo.findOneBy({ key: AppSettingKey.SELECTED_API_CONFIG_ID })
+    const row = await this.AppSettingRepo.findOneBy({ key: AppSettingKey.SELECTED_API_CONFIG_ID })
     const id = Number(row?.value)
     return Number.isFinite(id) && id > 0 ? id : null
   }

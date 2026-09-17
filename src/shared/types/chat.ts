@@ -111,7 +111,7 @@ export type ChatMessageUpdateInput = Partial<
 >
 
 /**
- * 发送一条消息的参数（自带历史记录持久化）
+ * 发送一条消息的参数
  */
 export interface ChatSendMessageParams {
   /** 会话 id */
