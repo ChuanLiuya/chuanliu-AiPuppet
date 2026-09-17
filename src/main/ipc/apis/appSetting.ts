@@ -8,7 +8,6 @@ import { ipcMain } from 'electron'
 import { dataSource } from '@electron/database'
 import { AppSettingEntity } from '@electron/database/entities/app_setting'
 import { IpcChannels } from '@shared/constants/ipc_channels'
-import type { AppSettingDTO } from '@shared/types/app_setting'
 import { success, error, type ApiResponse } from '@shared/types/api-response'
 
 export class AppSettingController {

@@ -7,8 +7,9 @@
 import { ipcMain } from 'electron'
 import { dataSource } from '@electron/database'
 import { ChatSessionEntity } from '@electron/database/entities/chat_session'
-import { ChatMessageEntity } from '@electron/database/entities/chat_message'
+import { ChatHistoryEntity } from '@electron/database/entities/chat_history'
 import { IpcChannels } from '@shared/constants/ipc_channels'
+import { resolveCharacterDisplayName } from '@shared/utils/character_card'
 import type {
   ChatSessionDTO,
   ChatSessionListItem,
@@ -23,9 +24,9 @@ export class ChatSessionController {
     return dataSource.getRepository(ChatSessionEntity)
   }
 
-  /** 懒获取 chat_message 表的仓库（删除会话时一并清理） */
+  /** 懒获取 chat_history 表的仓库（删除会话时一并清理） */
   private get messageRepo() {
-    return dataSource.getRepository(ChatMessageEntity)
+    return dataSource.getRepository(ChatHistoryEntity)
   }
 
   /** 注册所有 chatSession 相关的 IPC 通道 */
@@ -68,7 +69,7 @@ export class ChatSessionController {
           where: { session_id: session.id },
           order: { id: 'DESC' },
         })
-        list.push({ ...session, last_message: last?.mes ?? null })
+        list.push({ ...session, last_message: last?.content ?? null })
       }
       return success(list)
     } catch (err) {
@@ -90,8 +91,12 @@ export class ChatSessionController {
   /** 创建一个会话 */
   async create(data: ChatSessionCreateInput): Promise<ApiResponse<number>> {
     try {
-      // 标题留空时用角色名兜底，保证列表页有可读文本
-      const payload = { title: data.character_name, ...data }
+      // 标题留空时用角色展示名兜底，保证列表页有可读文本
+      // （character_card 可能只是角色名，也可能是角色卡地址，交给工具函数取展示名）
+      const payload = {
+        ...data,
+        title: data.title?.trim() || resolveCharacterDisplayName(data.character_card, ''),
+      }
       const saved = await this.repo.save(this.repo.create(payload))
       return success(saved.id, '创建会话成功')
     } catch (err) {

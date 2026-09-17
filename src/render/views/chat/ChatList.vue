@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // 会话列表页：展示所有会话（附带最后一条消息预览），点击进入具体聊天
 import type { ChatSessionListItem } from '@shared/types/chat'
+import { resolveCharacterDisplayName } from '@shared/utils/character_card'
 import { formatRelativeTime } from '@/utils/format'
 import { debugLog } from '@/composables/useDebugLog'
 import { AddOutline } from '@vicons/ionicons5'
@@ -17,10 +18,9 @@ const showCreate = ref(false)
 /** 是否正在创建 */
 const creating = ref(false)
 
-/** 新建会话表单 */
+/** 新建会话表单（角色卡字段当前直接填角色名） */
 const createForm = reactive({
-  character_name: '',
-  avatar: '🤖',
+  character_card: '',
   title: '',
 })
 
@@ -36,25 +36,23 @@ async function loadSessions() {
 
 /** 打开新建弹窗并重置表单 */
 function openCreate() {
-  createForm.character_name = ''
-  createForm.avatar = '🤖'
+  createForm.character_card = ''
   createForm.title = ''
   showCreate.value = true
 }
 
 /** 确认新建会话，成功后直接进入该会话 */
 async function confirmCreate() {
-  const name = createForm.character_name.trim()
-  if (!name) {
-    message.warning('请输入角色名')
+  const card = createForm.character_card.trim()
+  if (!card) {
+    message.warning('请填写角色名或角色卡地址')
     return
   }
 
   creating.value = true
   const res = await window.electronAPI.chatSession.create({
-    character_name: name,
-    avatar: createForm.avatar.trim() || '🤖',
-    title: createForm.title.trim() || name,
+    character_card: card,
+    title: createForm.title.trim() || resolveCharacterDisplayName(card),
   })
   debugLog('chatSession.create', res)
   creating.value = false
@@ -115,10 +113,11 @@ onMounted(loadSessions)
           @click="router.push(`/chat/${s.id}`)"
         >
           <div class="session-body">
-            <div class="session-avatar">{{ s.avatar || '🤖' }}</div>
             <div class="session-info">
               <div class="session-top">
-                <span class="session-title">{{ s.title || s.character_name }}</span>
+                <span class="session-title">
+                  {{ s.title || resolveCharacterDisplayName(s.character_card) }}
+                </span>
                 <span class="session-time">{{ formatRelativeTime(s.updated_at) }}</span>
               </div>
               <div class="session-preview">{{ s.last_message || '暂无消息' }}</div>
@@ -131,14 +130,14 @@ onMounted(loadSessions)
       </n-space>
     </n-layout-content>
 
-    <!-- 新建会话弹窗：角色表落地前先在这里手填角色信息 -->
+    <!-- 新建会话弹窗：角色卡功能落地前先在这里手填角色名 -->
     <n-modal v-model:show="showCreate" preset="card" title="新建会话" class="create-modal">
       <n-form label-placement="left" label-width="64">
-        <n-form-item label="角色名">
-          <n-input v-model:value="createForm.character_name" placeholder="例如：苏妲己" />
-        </n-form-item>
-        <n-form-item label="头像">
-          <n-input v-model:value="createForm.avatar" placeholder="一个 emoji，例如 🦊" />
+        <n-form-item label="角色">
+          <n-input
+            v-model:value="createForm.character_card"
+            placeholder="角色名，例如：苏妲己（将来也可填角色卡地址）"
+          />
         </n-form-item>
         <n-form-item label="标题">
           <n-input v-model:value="createForm.title" placeholder="留空则用角色名" />
@@ -197,11 +196,6 @@ onMounted(loadSessions)
   display: flex;
   align-items: center;
   gap: 16px;
-}
-
-.session-avatar {
-  font-size: 34px;
-  line-height: 1;
 }
 
 .session-info {

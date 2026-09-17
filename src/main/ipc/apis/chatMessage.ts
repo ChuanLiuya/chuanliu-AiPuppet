@@ -1,21 +1,21 @@
 /**
  * 聊天消息模块 —— 主进程 Controller
  *
- * 职责：处理 chatMessage:* 通道的 IPC 请求，对 chat_message 表做 CRUD。
+ * 职责：处理 chatMessage:* 通道的 IPC 请求，对 chat_history 表做 CRUD。
  * 通道定义见 @shared/constants/ipc_channels，数据契约见 @shared/types/chat。
  */
 import { ipcMain } from 'electron'
 import { dataSource } from '@electron/database'
-import { ChatMessageEntity } from '@electron/database/entities/chat_message'
+import { ChatHistoryEntity } from '@electron/database/entities/chat_history'
 import { ChatSessionEntity } from '@electron/database/entities/chat_session'
 import { IpcChannels } from '@shared/constants/ipc_channels'
 import type { ChatMessageDTO, ChatMessageCreateInput, ChatMessageUpdateInput } from '@shared/types/chat'
 import { success, error, type ApiResponse } from '@shared/types/api-response'
 
 export class ChatMessageController {
-  /** 懒获取 chat_message 表的仓库 */
+  /** 懒获取 chat_history 表的仓库 */
   private get repo() {
-    return dataSource.getRepository(ChatMessageEntity)
+    return dataSource.getRepository(ChatHistoryEntity)
   }
 
   /** 懒获取 chat_session 表的仓库（新增消息后刷新会话更新时间） */

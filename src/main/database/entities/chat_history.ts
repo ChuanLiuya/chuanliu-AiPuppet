@@ -1,12 +1,14 @@
 /**
- * 聊天消息表
+ * 聊天历史表（chat_history）
+ *
+ * 一条记录 = 一条消息，按 id 升序即为时间顺序。
  */
-import { ChatMessageDTO } from '@shared/types/chat'
+import { ChatMessageDTO, type ChatRole } from '@shared/types/chat'
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
 import { ChatSessionEntity } from '@electron/database/entities/chat_session'
 
-@Entity('chat_message')
-export class ChatMessageEntity implements ChatMessageDTO {
+@Entity('chat_history')
+export class ChatHistoryEntity implements ChatMessageDTO {
   /** 消息 id */
   @PrimaryGeneratedColumn()
   id!: number
@@ -24,17 +26,13 @@ export class ChatMessageEntity implements ChatMessageDTO {
   @Column({ default: '' })
   name!: string
 
-  /** 是否为用户发送 */
-  @Column({ type: 'boolean', default: false })
-  is_user!: boolean
-
-  /** 是否为系统/隐藏消息（默认不发送给 AI，仅界面展示） */
-  @Column({ type: 'boolean', default: false })
-  is_system!: boolean
+  /** 消息角色（user / assistant / system …） */
+  @Column({ type: 'varchar', default: 'assistant' })
+  role!: ChatRole
 
   /** 正文 */
   @Column({ type: 'text' })
-  mes!: string
+  content!: string
 
   /**
    * 杂项元数据（生成参数、推理过程、工具调用等，预留）。

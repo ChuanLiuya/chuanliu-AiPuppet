@@ -10,10 +10,11 @@ import { ipcMain } from 'electron'
 import { dataSource } from '@electron/database'
 import { ApiConfigEntity } from '@electron/database/entities/api_config'
 import { ChatSessionEntity } from '@electron/database/entities/chat_session'
-import { ChatMessageEntity } from '@electron/database/entities/chat_message'
+import { ChatHistoryEntity } from '@electron/database/entities/chat_history'
 import { AppSettingEntity } from '@electron/database/entities/app_setting'
 import { AppSettingKey } from '@shared/constants/app_setting'
 import { IpcChannels } from '@shared/constants/ipc_channels'
+import { resolveCharacterDisplayName } from '@shared/utils/character_card'
 import type {
   ChatMessageDTO,
   ChatSendMessageParams,
@@ -33,9 +34,9 @@ export class ChatController {
     return dataSource.getRepository(ChatSessionEntity)
   }
 
-  /** 懒获取 chat_message 表的仓库 */
+  /** 懒获取 chat_history 表的仓库 */
   private get messageRepo() {
-    return dataSource.getRepository(ChatMessageEntity)
+    return dataSource.getRepository(ChatHistoryEntity)
   }
 
   /** 懒获取 app_setting 表的仓库（读取全局选中的 API 配置） */
@@ -79,13 +80,12 @@ export class ChatController {
         this.messageRepo.create({
           session_id: session.id,
           name: params.user_name ?? '你',
-          is_user: true,
-          is_system: false,
-          mes: params.content,
+          role: 'user',
+          content: params.content,
         }),
       )
 
-      // 2. 读取该会话全部历史，转成接口格式（is_system 的消息不会发出）
+      // 2. 读取该会话全部历史，转成接口格式
       const history = await this.messageRepo.find({
         where: { session_id: session.id },
         order: { id: 'ASC' },
@@ -99,10 +99,9 @@ export class ChatController {
       const assistantMessage = await this.messageRepo.save(
         this.messageRepo.create({
           session_id: session.id,
-          name: session.character_name || 'AI',
-          is_user: false,
-          is_system: false,
-          mes: reply.content,
+          name: resolveCharacterDisplayName(session.character_card, 'AI'),
+          role: 'assistant',
+          content: reply.content,
           extra: reply.finish_reason ? { finish_reason: reply.finish_reason } : null,
         }),
       )

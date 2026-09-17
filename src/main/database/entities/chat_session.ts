@@ -23,13 +23,9 @@ export class ChatSessionEntity implements ChatSessionDTO {
   @Column({ default: '' })
   title!: string
 
-  /** 角色名（角色表落地前先冗余存文本） */
+  /** 角色卡（两态：角色卡地址，或纯文本角色名） */
   @Column({ default: '' })
-  character_name!: string
-
-  /** 角色头像（emoji 或图片标识） */
-  @Column({ default: '' })
-  avatar!: string
+  character_card!: string
 
   /** 创建时间 */
   @CreateDateColumn()

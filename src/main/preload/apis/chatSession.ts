@@ -53,7 +53,7 @@ export const chatSessionApi = {
    *
    * 通道：api:chatSession:create
    *
-   * @param data 创建入参（character_name 必填，title 省略时用角色名兜底）
+   * @param data 创建入参（character_card 必填，title 省略时用角色展示名兜底）
    * @returns 新创建记录的 id
    */
   create: (data: ChatSessionCreateInput): Promise<ApiResponse<number>> =>

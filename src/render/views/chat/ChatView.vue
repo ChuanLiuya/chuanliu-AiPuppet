@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // 具体聊天页：加载会话与历史消息，发送消息（由主进程自动持久化）
 import type { ChatMessageDTO, ChatSessionDTO } from '@shared/types/chat'
+import { resolveCharacterDisplayName } from '@shared/utils/character_card'
 import { useUiStore } from '@/stores/ui'
 import { debugLog } from '@/composables/useDebugLog'
 import { useThemeVars } from 'naive-ui'
@@ -27,11 +28,8 @@ const isSending = ref(false)
 /** 消息滚动容器 */
 const listRef = ref<HTMLElement | null>(null)
 
-/** 角色名（会话未加载时给个兜底文案） */
-const characterName = computed(() => session.value?.character_name || '角色')
-/** 角色头像 */
-const characterAvatar = computed(() => session.value?.avatar || '🤖')
-
+/** 角色展示名（character_card 可能是角色名，也可能是角色卡地址；会话未加载时给兜底文案） */
+const characterName = computed(() => resolveCharacterDisplayName(session.value?.character_card, '角色'))
 
 /** 加载会话信息与历史消息 */
 async function loadChat() {
@@ -52,9 +50,9 @@ async function loadChat() {
 
 }
 
-/** 气泡颜色跟随主题：用户消息用主题色，角色消息用卡片底色 */
+/** 气泡颜色跟随主题：用户消息用主题色，其余（角色/系统）用卡片底色 */
 function bubbleStyle(m: ChatMessageDTO) {
-  return m.is_user
+  return m.role === 'user'
     ? { background: themeVars.value.primaryColor, color: '#fff' }
     : { background: themeVars.value.cardColor, color: themeVars.value.textColor1 }
 }
@@ -114,7 +112,6 @@ watch(sessionId, loadChat)
             <NIcon :component="ArrowBackOutline" />
           </template>
         </NButton>
-        <span class="chat-avatar">{{ characterAvatar }}</span>
         <div class="chat-title">
           <div class="chat-name">{{ characterName }}</div>
           <div class="chat-sub" :style="{ color: themeVars.textColor3 }">
@@ -143,21 +140,20 @@ watch(sessionId, loadChat)
             v-for="m in messages"
             :key="m.id"
             class="message-row"
-            :class="m.is_system ? 'system' : m.is_user ? 'user' : 'assistant'"
+            :class="m.role"
           >
             <div
-              v-if="m.is_system"
+              v-if="m.role === 'system'"
               class="system-hint"
               :style="{ background: themeVars.cardColor, color: themeVars.textColor3 }"
             >
-              {{ m.mes }}
+              {{ m.content }}
             </div>
 
             <template v-else>
-              <span v-if="!m.is_user" class="msg-avatar">{{ characterAvatar }}</span>
               <div class="message-bubble" :style="bubbleStyle(m)">
-                <div v-if="!m.is_user" class="msg-name">{{ m.name || characterName }}</div>
-                <div class="msg-content">{{ m.mes }}</div>
+                <div v-if="m.role !== 'user'" class="msg-name">{{ m.name || characterName }}</div>
+                <div class="msg-content">{{ m.content }}</div>
               </div>
             </template>
           </div>
@@ -226,11 +222,6 @@ watch(sessionId, loadChat)
       min-width: 0;
     }
 
-    .chat-avatar {
-      font-size: 34px;
-      line-height: 1;
-    }
-
     .chat-title {
       flex: 1;
     }
@@ -272,7 +263,7 @@ watch(sessionId, loadChat)
           align-self: flex-start;
         }
 
-        /* 系统消息居中展示（is_system，不会发给 AI） */
+        /* 系统消息居中展示（role === 'system'） */
         &.system {
           align-self: center;
           max-width: 100%;
@@ -282,11 +273,6 @@ watch(sessionId, loadChat)
             border-radius: 10px;
             font-size: 12px;
           }
-        }
-
-        .msg-avatar {
-          font-size: 28px;
-          line-height: 1.2;
         }
 
         .message-bubble {

@@ -1,11 +1,19 @@
 /**
+ * 消息角色
+ *
+ * 与 OpenAI Chat Completions 的 role 对齐：`system`（系统提示）、`user`（用户）、
+ * `assistant`（AI 回复）。将来要接工具调用、旁白等，在这里补新值即可。
+ */
+export type ChatRole = 'system' | 'user' | 'assistant'
+
+/**
  * 对话消息类型
  *
  * 兼容 OpenAI Chat Completions API 的消息格式。
  */
 export interface ChatMessage {
   /** 角色：system（系统提示词）、user（用户）、assistant（AI 回复） */
-  role: 'system' | 'user' | 'assistant'
+  role: ChatRole
   /** 消息内容 */
   content: string
 }
@@ -31,19 +39,26 @@ export interface ChatSessionDTO {
   id: number
   /** 会话标题（列表页展示） */
   title: string
-  /** 角色名 */
-  character_name: string
-  /** 角色头像（emoji 或图片标识） */
-  avatar: string
+  /**
+   * 角色卡（兼容两态字段）
+   *
+   * - 角色卡功能落地前：直接存纯文本角色名（当前形态，如「苏妲己」）
+   * - 角色卡功能落地后：存角色卡地址（如 `res://characters/苏妲己.json`）
+   *
+   * 两种形态都是字符串，取值时不要直接当名字用，
+   * 一律走 `@shared/utils/character_card` 的
+   * `isCharacterCardRef()` / `resolveCharacterDisplayName()` 判定与取展示名。
+   */
+  character_card: string
   /** 创建时间 */
   created_at: Date
   /** 最后更新时间（有新消息时刷新，列表按此倒序排列） */
   updated_at: Date
 }
 
-/** 创建一个会话的参数（title / avatar 可省略） */
-export type ChatSessionCreateInput = Pick<ChatSessionDTO, 'character_name'> &
-  Partial<Pick<ChatSessionDTO, 'title' | 'avatar'>>
+/** 创建一个会话的参数（title 可省略，省略时用角色展示名兜底） */
+export type ChatSessionCreateInput = Pick<ChatSessionDTO, 'character_card'> &
+  Partial<Pick<ChatSessionDTO, 'title'>>
 
 /** 更新一个会话的可选字段 */
 export type ChatSessionUpdateInput = Partial<ChatSessionCreateInput>
@@ -62,9 +77,9 @@ export interface ChatSessionListItem extends ChatSessionDTO {
 /**
  * 一条聊天消息（历史记录的最小单元）
  *
- * 设计参照 SillyTavern：身份用 `is_user` / `is_system` 两个布尔位表达，
- * 而不是 role 字符串——这样群聊（多个角色名）、旁白、隐藏消息都能容纳。
- * 真正发给 AI 的 `role` 由 providerAdapter 在发送前现场推导，两者解耦。
+ * 身份用单一的 `role` 字符串表达（user / assistant / system …），与接口协议对齐；
+ * 具体是谁说的另外记在 `name` 上（群聊里多个角色、旁白都能靠它区分）。
+ * 发给 AI 的消息由 providerAdapter 直接取 `role`，存储层与协议不再有推导关系。
  */
 export interface ChatMessageDTO {
   /** 消息 id */
@@ -73,24 +88,22 @@ export interface ChatMessageDTO {
   session_id: number
   /** 发送者名字（用户人设名 / 角色名 / 系统名） */
   name: string
-  /** 是否为用户发送 */
-  is_user: boolean
-  /** 是否为系统/隐藏消息（默认不发送给 AI，仅界面展示） */
-  is_system: boolean
+  /** 消息角色 */
+  role: ChatRole
   /** 正文 */
-  mes: string
+  content: string
   /** 杂项元数据（生成参数、推理过程、工具调用等，预留） */
   extra: Record<string, unknown> | null
   /** 创建时间 */
   created_at: Date
 }
 
-/** 创建一条消息的参数（is_system / extra 可省略） */
+/** 创建一条消息的参数（extra 可省略） */
 export type ChatMessageCreateInput = Pick<
   ChatMessageDTO,
-  'session_id' | 'name' | 'is_user' | 'mes'
+  'session_id' | 'name' | 'role' | 'content'
 > &
-  Partial<Pick<ChatMessageDTO, 'is_system' | 'extra'>>
+  Partial<Pick<ChatMessageDTO, 'extra'>>
 
 /** 更新一条消息的可选字段（不允许改所属会话与创建时间） */
 export type ChatMessageUpdateInput = Partial<

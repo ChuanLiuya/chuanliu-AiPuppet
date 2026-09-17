@@ -45,7 +45,7 @@ export const chatMessageApi = {
    *
    * 通道：api:chatMessage:create
    *
-   * @param data 创建入参（session_id / name / is_user / mes 必填）
+   * @param data 创建入参（session_id / name / role / content 必填）
    * @returns 新创建记录的 id
    */
   create: (data: ChatMessageCreateInput): Promise<ApiResponse<number>> =>
