@@ -26,13 +26,13 @@ export enum ApiCode {
  */
 export interface ApiResponse<T = unknown> {
   /** 是否成功 */
-  success: boolean
+  success?: boolean
   /** 业务状态码，0 = 成功，非 0 = 失败 */
-  code: ApiCode
+  code?: ApiCode
   /** 实际返回的数据 */
-  result: T
+  result?: T
   /** 供前端弹窗使用的提示信息 */
-  message: string
+  message?: string
 }
 
 /**

@@ -7,23 +7,18 @@ import { useThemeVars } from 'naive-ui'
 import { ArrowBackOutline, ContractOutline, ExpandOutline, SendOutline } from '@vicons/ionicons5'
 
 const uiStore = useUiStore()
-/** 当前会话与历史消息都由 chat store 持有，页面只负责渲染（统一 chatStore.xxx 访问，不解构） */
+/**
+ * 对话pinia
+ * 临时保存会话和聊天历史记录
+ */
 const chatStore = useChatStore()
 const router = useRouter()
-const route = useRoute()
 const themeVars = useThemeVars()
 const message = useMessage()
 
-/** 会话 id（来自路由参数） */
-const sessionId = computed(() => Number(route.params.id))
 /** 输入框文本 */
 const inputText = ref('')
 
-/** 进入会话：store 里已有该会话的缓存时不会重复请求 */
-async function loadChat() {
-  const err = await chatStore.enterSession(sessionId.value)
-  if (err) message.error(err)
-}
 
 /** 气泡颜色跟随主题：用户消息用主题色，其余（角色/系统）用卡片底色 */
 function bubbleStyle(m: ChatHistoryDTO) {
@@ -54,9 +49,9 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
-onMounted(loadChat)
-// 只有路由参数变化时组件会被复用，需要重新加载
-watch(sessionId, loadChat)
+onMounted(()=>{
+  chatStore.findChatHistoryBySession(chatStore.currentSession)
+})
 </script>
 
 <template>
@@ -74,7 +69,7 @@ watch(sessionId, loadChat)
           </template>
         </NButton>
         <div class="chat-title">
-          <div class="chat-name">{{ chatStore.characterName }}</div>
+          <!-- <div class="chat-name">{{ chatStore.characterName }}</div> -->
           <div class="chat-sub" :style="{ color: themeVars.textColor3 }">
             AI 角色扮演 · {{ chatStore.messages.length }} 条消息
           </div>
@@ -113,7 +108,7 @@ watch(sessionId, loadChat)
 
             <template v-else>
               <div class="message-bubble" :style="bubbleStyle(m)">
-                <div v-if="m.role !== 'user'" class="msg-name">{{ m.name || chatStore.characterName }}</div>
+                <!-- <div v-if="m.role !== 'user'" class="msg-name">{{ m.name || chatStore.characterName }}</div> -->
                 <div class="msg-content">{{ m.content }}</div>
               </div>
             </template>

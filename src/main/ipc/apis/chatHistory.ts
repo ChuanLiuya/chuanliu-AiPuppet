@@ -48,7 +48,7 @@ export class ChatHistoryController {
         where: { session_id: sessionId },
         order: { id: 'ASC' },
       })
-      return success(list)
+      return success(list, `查找ID为 ${sessionId} 的聊天记录成功`)
     } catch (err) {
       return error(`查询聊天历史失败：${err}`, [])
     }

@@ -1,8 +1,8 @@
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import type { ChatHistoryDTO, ChatSessionDTO } from '@shared/types/chat'
-import { resolveCharacterDisplayName } from '@shared/utils/character_card'
 import { debugLog } from '@/composables/useDebugLog'
+import type { ApiResponse } from '@shared/types/api-response'
 
 /**
  * 一次发送的结果
@@ -34,95 +34,45 @@ export const useChatStore = defineStore('chat', () => {
   const currentSession = ref<ChatSessionDTO | null>(null)
   /** 当前会话的聊天历史（按时间升序） */
   const messages = ref<ChatHistoryDTO[]>([])
-  /** messages 归属的会话 id；null 表示当前没有可用的历史缓存 */
-  const messagesOwnerId = ref<number | null>(null)
-  /** 是否正在加载会话信息 / 历史 */
+  /** 是否正在加载会话信息/历史 */
   const isLoading = ref(false)
   /** 是否正在等待 AI 回复 */
   const isWaitingResponse = ref(false)
-
-  /** 当前会话 id；没有会话时为 null */
-  const sessionId = computed(() => currentSession.value?.id ?? null)
-
-  /** 当前会话的角色展示名（未知时兜底为「角色」） */
-  const characterName = computed(() =>
-    resolveCharacterDisplayName(currentSession.value?.character_card, '角色'),
-  )
-
-  /** 清空当前会话及其历史（删除会话后、或需要彻底复位时调用） */
+  /**
+   * 清空当前会话及其历史
+   *
+   * 清除当前会话
+   *
+   * 清除当前对话的聊天历史
+   */
   function clear() {
     currentSession.value = null
     messages.value = []
-    messagesOwnerId.value = null
     isWaitingResponse.value = false
   }
 
   /**
-   * 同步写入当前会话（不请求历史）
+   * 设置当前会话
    *
-   * 会话列表点进来时用：列表已经拿到整条记录，直接交给 store，
-   * 聊天页的 `enterSession` 就会跳过 `findOneById`。
+   * 会话列表点进来时用
+   * 设置当前会话后，会自动清除聊天记录数组
    */
   function setCurrentSession(session: ChatSessionDTO) {
-    // 换会话了：先丢掉上一个会话的历史，避免进入瞬间渲染出上一个会话的消息
-    if (messagesOwnerId.value !== session.id) {
-      messages.value = []
-      messagesOwnerId.value = null
-    }
+    messages.value = []
     currentSession.value = session
   }
 
-  /**
-   * 进入会话：保证「会话信息 + 聊天历史」都在 store 里
-   *
-   * @param target  会话 id，或列表页已有的整条会话记录
-   * @param options force=true 时忽略缓存，强制重新拉取历史
-   * @returns 出错时的提示信息；null 表示成功
-   */
-  async function enterSession(
-    target: ChatSessionDTO | number,
-    options: { force?: boolean } = {},
-  ): Promise<string | null> {
-    const targetId = typeof target === 'number' ? target : target.id
-    if (!Number.isFinite(targetId)) return '无效的会话 id'
-
-    // 整条记录优先（省一次查询）；只有 id 时先清掉上一个会话的残留
-    if (typeof target !== 'number') setCurrentSession(target)
-    else if (currentSession.value?.id !== targetId) clear()
-
-    // 缓存命中：会话信息和历史都属于这个会话，直接复用
-    if (
-      !options.force &&
-      currentSession.value?.id === targetId &&
-      messagesOwnerId.value === targetId
-    ) {
-      return null
+  async function findChatHistoryBySession(session: ChatSessionDTO | null): Promise<ApiResponse<ChatHistoryDTO[]>> {
+    if (session === null) return {
+      success: false,
+      message: `会话ID为空！`
     }
+    const res = await window.electronAPI.chatHistory.findAll(session.id)
+    debugLog('chatHistory.findAll', res)
 
-    isLoading.value = true
-    let errorMessage: string | null = null
+    messages.value = res.result ?? []
 
-    // 会话信息：只有「手上只有 id」时才需要查
-    if (currentSession.value?.id !== targetId) {
-      const sessionRes = await window.electronAPI.chatSession.findOneById(targetId)
-      debugLog('chatSession.findOneById', sessionRes)
-      if (sessionRes.success && sessionRes.result) currentSession.value = sessionRes.result
-      else errorMessage = sessionRes.message || '会话不存在'
-    }
-
-    if (!errorMessage) {
-      const messageRes = await window.electronAPI.chatHistory.findAll(targetId)
-      debugLog('chatHistory.findAll', messageRes)
-      if (messageRes.success) {
-        messages.value = messageRes.result
-        messagesOwnerId.value = targetId
-      } else {
-        errorMessage = messageRes.message
-      }
-    }
-
-    isLoading.value = false
-    return errorMessage
+    return res
   }
 
   /**
@@ -147,11 +97,11 @@ export const useChatStore = defineStore('chat', () => {
     isWaitingResponse.value = false
 
     // 连用户消息都没落库（如未配置 API）：让页面把输入还原回输入框
-    if (!res.result) return { saved: false, error: res.message }
+    if (!res.result) return { saved: false, error: res.message! }
 
     // 用户消息在调 AI 前就已落库，AI 失败时也会带回来，所以直接入列
     messages.value.push(res.result.user_message)
-    if (!res.result.assistant_message) return { saved: true, error: res.message }
+    if (!res.result.assistant_message) return { saved: true, error: res.message! }
 
     messages.value.push(res.result.assistant_message)
     return { saved: true, error: null }
@@ -161,16 +111,12 @@ export const useChatStore = defineStore('chat', () => {
     // 状态
     currentSession,
     messages,
-    messagesOwnerId,
     isLoading,
     isWaitingResponse,
-    // 派生
-    sessionId,
-    characterName,
     // 动作
+    findChatHistoryBySession,
     clear,
     setCurrentSession,
-    enterSession,
     sendMessage,
   }
 })
